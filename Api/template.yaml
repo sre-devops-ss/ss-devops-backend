@@ -2,31 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Deployment for Task API
 
-Parameters:
-  subneta:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /OT/VPC/SUBNET
-  subnetb:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /OT/VPC/SUBNET2
-  sg:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /OT/VPC/SG
-  customdomain:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /OT/API/CUSTOM_DOMAIN
-  UserPoolArn:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /OT/API/UserPoolArn
-  proxyarn:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /OT/VPC/proxyarn
-  proxyarn1:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /OT/VPC/proxyarn1
-  proxyarn2:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /OT/VPC/proxyarn2
+
 
 Globals:
   Function:
@@ -85,30 +61,6 @@ Resources:
                 - ssm:GetParameters
                 - ssm:GetParameter
               Resource: '*'
-            - Sid: RDSConnectPolicy
-              Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource:
-                Fn::Sub: ${proxyarn}/*
-            - Sid: RDSConnectPolicy1
-              Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource:
-                Fn::Sub: ${proxyarn1}/*
-            - Sid: RDSConnectPolicy2
-              Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource:
-                Fn::Sub: ${proxyarn2}/*
-      VpcConfig:
-        SubnetIds:
-          - !Ref subnetb
-          - !Ref subneta
-        SecurityGroupIds:
-          - !Ref sg
 
   ApiGatewayId:
     Type: AWS::SSM::Parameter
