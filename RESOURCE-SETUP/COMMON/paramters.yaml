@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description:  Parameter Store
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: None
+  Domain:
+    Type: String
+    Default: None
+  Repo:
+    Type: String
+  Branch:
+    Type: String
+Resources:
+
+
+  Samclibucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${EnvironmentName}-sam-build-bucket-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: "Environment"
+          Value: !Ref EnvironmentName
+        - Key: "Domain"
+          Value: !Ref Domain
+
+  ApiBuildSpec:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/policyguard/codebuild/base/buildspec'
+      Description: 'Buildspec for CodeBuild'
+      Type: 'String'
+      Value: |
+        version: 0.2
+        env:
+          variables:
+              DEPLOY_DIR: "/"
+          parameter-store:
+              Repo: "/policyguard/repo/name"
+              Branch: "/policyguard/repo/branch"
+              Bucket: "/automation/sambuild/bucket"
+              
+        phases:
+          install:
+            runtime-versions:
+               java: corretto17
+          build:
+            commands:
+              - echo Checking for root-level folder changes...
+              
+              - git fetch origin main  # Fetch the latest changes from the main branch (or your target branch)
+              - CHANGED_FOLDERS=$(git diff --name-only origin/$Branch...HEAD | awk -F/ '{print $1}' | sort -u)
+              - echo "Changed root-level folders: $CHANGED_FOLDERS"
+              - echo "Changed root-level folders: $CHANGED_FOLDERS" > changed_folders.txt  # Save it to a file for later reference
+        
+              - |
+                for folder in $CHANGED_FOLDERS; do
+                  CHANGED_FOLDERS=$(echo "$CHANGED_FOLDERS" | grep -v '^RESOURCE-SETUP$')
+                  echo "Processing folder: $folder"
+                
+                  if [ -f "$folder/template.yaml" ]; then
+                    echo "Found template.yaml in $folder. Running SAM build and deploy..."
+                
+                    TemplatePath="$folder/template.yaml"
+                
+                    sam build -t $TemplatePath
+                    
+                    SAM_CLI_POLL_DELAY=5 sam deploy --stack-name "$REPO_NAME-sam-stack" --s3-bucket $Bucket --s3-prefix $REPO_NAME --capabilities CAPABILITY_IAM
+                  
+                  else
+                    echo "No template.yaml found in $folder. Skipping."
+                  fi
+        
+                done
+        
+              - echo "Completed processing changed folders."
+
+        
+
+  Enviroment:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /automation/environment/name
+      Type: String
+      Value: !Ref EnvironmentName
+      Description: "env for branch and others"
+  EnvPrimaryDomain:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /automation/environment/domain
+      Type: String
+      Value: !Ref Domain
+
+  SamBuildBucket:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /automation/sambuild/bucket
+      Type: String
+      Value: !Ref Samclibucket
+
+  SetupRepo:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /automation/repo/name
+      Type: String
+      Value: !Ref Repo
+      Description: "env for branch and others"
+
+  SetupBranch:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /automation/repo/branch
+      Type: String
+      Value: !Ref Branch
+      Description: "env for branch and others"
+

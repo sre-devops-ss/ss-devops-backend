@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Roles for Resource
+
+Resources:
+  CodeBuildServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: automation-codebuild-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: '/'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess'
+        - 'arn:aws:iam::aws:policy/CloudWatchFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
+        - 'arn:aws:iam::aws:policy/AWSCloudFormationFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser'
+      Policies:
+        - PolicyName: automation-codebuild-inline-kms-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'kms:*'
+                  - 'codebuild:*'
+                  - 'events:*'
+                  - 'pipeline:*'
+                  - 'ssm:*'
+                  - 'ecr:*'
+                  - 'ecs:*'
+                  - 'cloudfront:*'
+                  - 's3:*'
+                  - 'sqs:*'
+                  - 'iam:*'
+                  - 'acm:*'
+                  - 'route53:*'
+                  - 'codepipeline:*'
+                  - 'lambda:*'
+                  - 'ec2:*'
+                  - 'apigateway:*'
+                  - 'dynamodb:*'
+                Resource: '*'
+
+  SSMParameterCodebuildRole:
+    Type: AWS::SSM::Parameter
+    DependsOn: CodeBuildServiceRole
+    Properties:
+      Name: /automation/role/codebuild/Arn
+      Type: String
+      Value: !GetAtt CodeBuildServiceRole.Arn
+
+  CodePipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: automation-pipeline-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/AWSCodeCommitFullAccess"
+        - "arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess"
+      Policies:
+        - PolicyName: automation-inline-pipeline-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'kms:*'
+                  - 'codebuild:*'
+                  - 'cloudformation:*'
+                  - 'iam:*'
+                  - 'codedeploy:*'
+                  - 'ecs:*'
+                Resource: '*'
+
+  SSMParameterPipelineRole:
+    Type: AWS::SSM::Parameter
+    DependsOn: CodePipelineServiceRole
+    Properties:
+      Name: /automation/role/pipeline/Arn
+      Type: String
+      Value: !GetAtt CodePipelineServiceRole.Arn
+
+
+
+  EventBridgeRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: 'automation-eventbridge-role'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess'
+      Policies:
+        - PolicyName: EventBridgePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codepipeline:StartPipelineExecution'
+                Resource:
+                  - '*'
+
+  SSMParameterEventRole:
+    Type: AWS::SSM::Parameter
+    DependsOn: EventBridgeRole
+    Properties:
+      Name: /automation/role/event/Arn
+      Type: String
+      Value: !GetAtt EventBridgeRole.Arn
