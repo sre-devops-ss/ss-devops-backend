@@ -30,8 +30,3 @@ Resources:
                   - 'logs:CreateLogStream'
                   - 'logs:PutLogEvents'
                 Resource: '*'
-
-Outputs:
-  LambdaExecutionRoleArn:
-    Description: 'Lambda Execution Role ARN'
-    Value: !GetAtt LambdaExecutionRole.Arn
