@@ -97,6 +97,26 @@ Resources:
         - ALLOW_CUSTOM_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
       GenerateSecret: false
+
+  SsmUserPoolId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/devops-backend/userpool-id"
+      Type: String
+      Value: !Ref CognitoUserPool
+      Description: "Cognito User Pool ID for the DevOps backend"
+
+
+  SsmUserPoolClientId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/devops-backend/userpool-client-id"
+      Type: String
+      Value: !Ref CognitoUserPoolClient
+      Description: "Cognito User Pool Client ID for the DevOps backend"
+
+
+
 Outputs:
   ServerlessDeploymentBucketName:
     Value: !Ref ServerlessDeploymentBucket
