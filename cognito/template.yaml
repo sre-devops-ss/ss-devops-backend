@@ -72,8 +72,6 @@ Resources:
         EmailSubjectByLink: Your registration verification
         DefaultEmailOption: CONFIRM_WITH_LINK
       MfaConfiguration: OFF
-
-
   CognitoUserPoolClient:
     Type: 'AWS::Cognito::UserPoolClient'
     Properties:
