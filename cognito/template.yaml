@@ -22,7 +22,7 @@ Resources:
   CognitoUserPool:
     Type: 'AWS::Cognito::UserPool'
     Properties:
-      UserPoolName: devops-backend
+      UserPoolName: devops-backend-pool
       AutoVerifiedAttributes:
         - email
       Policies:
