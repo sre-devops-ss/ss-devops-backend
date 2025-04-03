@@ -71,7 +71,7 @@ Resources:
         EmailMessageByLink: 'Please click the link below to complete your registration. {##Verify Email##}'
         EmailSubjectByLink: Your registration verification
         DefaultEmailOption: CONFIRM_WITH_LINK
-      MfaConfiguration: OFF
+
   CognitoUserPoolClient:
     Type: 'AWS::Cognito::UserPoolClient'
     Properties:
