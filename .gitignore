@@ -1,9 +1,6 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Editor-based HTTP Client requests
-/httpRequests/
-# Datasource local storage ignored files
-/dataSources/
-/dataSources.local.xml
+# Created by venv; see https://docs.python.org/3/library/venv.html
+
 .idea
+pyvenv.cfg
+include
+lib
