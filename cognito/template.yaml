@@ -36,21 +36,6 @@ Resources:
         - Mutable: 'false'
           Name: email
           Required: true
-        - Mutable: 'true'
-          Name: gender
-          Required: true
-        - Mutable: 'false'
-          Name: locale
-          Required: true
-        - Mutable: 'true'
-          Name: name
-          Required: true
-        - Mutable: 'true'
-          Name: phone_number
-          Required: true
-        - Mutable: 'true'
-          Name: preferred_username
-          Required: true
         - Name: scope
           AttributeDataType: String
           DeveloperOnlyAttribute: false
