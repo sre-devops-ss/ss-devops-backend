@@ -9,6 +9,9 @@ Parameters:
   UserPoolId:
     Type: AWS::SSM::Parameter::Value<String>
     Default: "/devops-backend/userpool-id"
+  UserPoolClientId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/userpool-client-id"
   Environment:
     Type: String
     Default: "dev"
@@ -91,6 +94,8 @@ Resources:
       Environment:
         Variables:
           COGNITO_USER_POOL_ID: { Ref: UserPoolId }
+          COGNITO_CLIENT_ID: { Ref: UserPoolClientId}
+
 
       Policies:
         - VPCAccessPolicy: { }
