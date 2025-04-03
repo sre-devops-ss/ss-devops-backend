@@ -12,7 +12,6 @@ Parameters:
   Environment:
     Type: String
     Default: "dev"
-
 #  LambdaLayerARN:
 #    Type: AWS::SSM::Parameter::Value<String>
 #    Default: /OT/Ostrum/Lambda/Layer/ARN
