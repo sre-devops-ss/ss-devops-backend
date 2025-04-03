@@ -19,7 +19,7 @@ def lambda_handler(event, context):
             }
 
         response = client.initiate_auth(
-            AuthFlow="ALLOW_USER_PASSWORD_AUTH",
+            AuthFlow="USER_PASSWORD_AUTH",
             AuthParameters={
                 "USERNAME": username,
                 "PASSWORD": password,

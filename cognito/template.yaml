@@ -78,9 +78,10 @@ Resources:
       ClientName: devops-backend-client
       UserPoolId: !Ref CognitoUserPool
       ExplicitAuthFlows:
+          - USER_PASSWORD_AUTH
 #        - ALLOW_ADMIN_USER_PASSWORD_AUTH
-        - ALLOW_USER_PASSWORD_AUTH
-        - ALLOW_REFRESH_TOKEN_AUTH
+#        - ALLOW_USER_PASSWORD_AUTH
+#        - ALLOW_REFRESH_TOKEN_AUTH
       GenerateSecret: false
 
   SsmUserPoolId:
