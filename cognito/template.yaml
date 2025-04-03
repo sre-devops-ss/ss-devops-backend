@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: AWS CloudFormation template for a Serverless application with Cognito authentication
 
 Resources:
-  # S3 Bucket (unchanged from your template)
+
   ServerlessDeploymentBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
@@ -21,7 +21,6 @@ Resources:
         - Key: Environment
           Value: Production
 
-  # Cognito User Pool
   CognitoUserPool:
     Type: 'AWS::Cognito::UserPool'
     Properties:
@@ -72,9 +71,9 @@ Resources:
         EmailMessageByLink: 'Please click the link below to complete your registration. {##Verify Email##}'
         EmailSubjectByLink: Your registration verification
         DefaultEmailOption: CONFIRM_WITH_LINK
-      MfaConfiguration: OFF  # Optional: Set to ON if MFA is needed
+      MfaConfiguration: OFF
 
-  # Cognito User Pool Client
+
   CognitoUserPoolClient:
     Type: 'AWS::Cognito::UserPoolClient'
     Properties:
@@ -103,7 +102,6 @@ Resources:
       Type: String
       Value: !Ref CognitoUserPool
       Description: "Cognito User Pool ID for the DevOps backend"
-
 
   SsmUserPoolClientId:
     Type: AWS::SSM::Parameter
