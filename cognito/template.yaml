@@ -1,6 +1,8 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: The AWS CloudFormation template for this Serverless application
+Description: AWS CloudFormation template for a Serverless application with Cognito authentication
+
 Resources:
+  # S3 Bucket (unchanged from your template)
   ServerlessDeploymentBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
@@ -19,10 +21,11 @@ Resources:
         - Key: Environment
           Value: Production
 
+  # Cognito User Pool
   CognitoUserPool:
     Type: 'AWS::Cognito::UserPool'
     Properties:
-      UserPoolName: devops-backend-pool
+      UserPoolName: dev0devops-backend-pool
       AutoVerifiedAttributes:
         - email
       Policies:
@@ -33,12 +36,12 @@ Resources:
           RequireSymbols: true
           RequireUppercase: true
       Schema:
-        - Mutable: 'false'
-          Name: email
+        - Name: email
+          AttributeDataType: String
+          Mutable: false
           Required: true
         - Name: scope
           AttributeDataType: String
-          DeveloperOnlyAttribute: false
           Mutable: true
           Required: false
           StringAttributeConstraints:
@@ -46,7 +49,6 @@ Resources:
             MaxLength: '256'
         - Name: org
           AttributeDataType: String
-          DeveloperOnlyAttribute: false
           Mutable: true
           Required: false
           StringAttributeConstraints:
@@ -55,8 +57,8 @@ Resources:
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: false
         InviteMessageTemplate:
-          SMSMessage: 'Your username is {username} and temporary password is {####}. '
-          EmailMessage: 'Your username is {username} and temporary password is {####}. '
+          SMSMessage: 'Your username is {username} and temporary password is {####}.'
+          EmailMessage: 'Your username is {username} and temporary password is {####}.'
           EmailSubject: Your temporary password
       AccountRecoverySetting:
         RecoveryMechanisms:
@@ -67,23 +69,33 @@ Resources:
       UsernameConfiguration:
         CaseSensitive: false
       VerificationMessageTemplate:
-        EmailMessageByLink: >-
-          Please click the link below to complete your registration. {##Verify
-          Email##}
+        EmailMessageByLink: 'Please click the link below to complete your registration. {##Verify Email##}'
         EmailSubjectByLink: Your registration verification
         DefaultEmailOption: CONFIRM_WITH_LINK
+      MfaConfiguration: OFF  # Optional: Set to ON if MFA is needed
+
+  # Cognito User Pool Client
   CognitoUserPoolClient:
     Type: 'AWS::Cognito::UserPoolClient'
     Properties:
       ClientName: devops-backend-client
       UserPoolId: !Ref CognitoUserPool
       ExplicitAuthFlows:
-          - USER_PASSWORD_AUTH
-#        - ALLOW_ADMIN_USER_PASSWORD_AUTH
-#        - ALLOW_USER_PASSWORD_AUTH
-#        - ALLOW_REFRESH_TOKEN_AUTH
+        - USER_PASSWORD_AUTH
+        - REFRESH_TOKEN_AUTH
       GenerateSecret: false
+      AccessTokenValidity: 3600  # 1 hour
+      IdTokenValidity: 3600     # 1 hour
+      RefreshTokenValidity: 30  # 30 days
+      TokenValidityUnits:
+        AccessToken: seconds
+        IdToken: seconds
+        RefreshToken: days
+      SupportedIdentityProviders:
+        - COGNITO
+      PreventUserExistenceErrors: ENABLED
 
+  # SSM Parameters
   SsmUserPoolId:
     Type: AWS::SSM::Parameter
     Properties:
@@ -99,15 +111,3 @@ Resources:
       Type: String
       Value: !Ref CognitoUserPoolClient
       Description: "Cognito User Pool Client ID for the DevOps backend"
-
-
-
-Outputs:
-  ServerlessDeploymentBucketName:
-    Value: !Ref ServerlessDeploymentBucket
-    Export:
-      Name: sls-ostrum-user-pool-test-ServerlessDeploymentBucketName
-  UserPoolId:
-    Value: !Ref CognitoUserPool
-  UserPoolClientId:
-    Value: !Ref CognitoUserPoolClient
