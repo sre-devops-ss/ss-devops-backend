@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Deplyment for Lambdas with common auth
+Parameters:
+  Customdomain:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/api/custom_domain"
+
+  UserPoolId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/userpool-id"
+  Environment:
+    Type: String
+    Default: "dev"
+
+#  LambdaLayerARN:
+#    Type: AWS::SSM::Parameter::Value<String>
+#    Default: /OT/Ostrum/Lambda/Layer/ARN
+
+Globals:
+  Function:
+    Runtime: python3.10
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
+
+
+Resources:
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "auth-api"
+      StageName: !Ref Environment
+      # Auth:
+      #   DefaultAuthorizer: MyCognitoAuthorizer
+      #   Authorizers:
+      #     MyCognitoAuthorizer:
+      #       UserPoolArn:
+      #         - !Ref PdUserPoolArn
+      #         - !Ref OtUserPoolArn
+
+  CreateUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: create_user_function.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      FunctionName: createUser
+      Description: To create user in cognito
+      CodeUri: ../auth-api
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Method: post
+            Path: /create
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID:  { Ref: UserPoolId }
+
+      Policies:
+        - VPCAccessPolicy: {}
+        - Statement:
+            - Sid: SSMGetParameterPolicy
+              Effect: Allow
+              Action:
+                - ssm:GetParameters
+                - ssm:GetParameter
+              Resource: '*'
+#      Layers:
+#        - {Ref: LambdaLayerARN}
