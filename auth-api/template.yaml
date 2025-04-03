@@ -47,7 +47,7 @@ Resources:
       Handler: create_user_function.lambda_handler
       Timeout: 30
       MemorySize: 256
-      FunctionName: createUser
+      FunctionName: Devops-createUser
       Description: To create user in cognito
       CodeUri: ../auth-api
       Events:
@@ -64,6 +64,36 @@ Resources:
 
       Policies:
         - VPCAccessPolicy: {}
+        - Statement:
+            - Sid: SSMGetParameterPolicy
+              Effect: Allow
+              Action:
+                - ssm:GetParameters
+                - ssm:GetParameter
+              Resource: '*'
+  LoginUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: login.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      FunctionName: Devops-Auth-login
+      Description: To login user
+      CodeUri: ../auth-api
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Method: post
+            Path: /login
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: { Ref: UserPoolId }
+
+      Policies:
+        - VPCAccessPolicy: { }
         - Statement:
             - Sid: SSMGetParameterPolicy
               Effect: Allow
