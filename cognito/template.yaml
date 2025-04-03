@@ -104,6 +104,7 @@ Resources:
       Value: !Ref CognitoUserPool
       Description: "Cognito User Pool ID for the DevOps backend"
 
+
   SsmUserPoolClientId:
     Type: AWS::SSM::Parameter
     Properties:
