@@ -74,6 +74,11 @@ Resources:
                 - ssm:GetParameters
                 - ssm:GetParameter
               Resource: '*'
+            - Sid: CognitoPolicy
+              Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+              Resource: '*'
   LoginUser:
     Type: AWS::Serverless::Function
     Properties:
