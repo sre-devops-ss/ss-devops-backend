@@ -78,6 +78,7 @@ Resources:
               Effect: Allow
               Action:
                 - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
               Resource: '*'
   LoginUser:
     Type: AWS::Serverless::Function
