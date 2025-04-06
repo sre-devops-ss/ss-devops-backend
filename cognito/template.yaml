@@ -76,7 +76,7 @@ Resources:
       ClientName: devops-backend-client
       UserPoolId: !Ref CognitoUserPool
       ExplicitAuthFlows:
-        - USER_PASSWORD_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
       GenerateSecret: false
       AccessTokenValidity: 3600  # 1 hour
       IdTokenValidity: 3600     # 1 hour
