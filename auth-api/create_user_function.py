@@ -50,7 +50,7 @@ def lambda_handler(event, context):
             Permanent=True
         )
 
-        return  apiResponse(f"User created successfully",200)
+        return  apiResponse(f"User {EMAIL} created successfully",200)
 
 
     except Exception as e:
