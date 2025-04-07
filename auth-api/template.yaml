@@ -12,6 +12,7 @@ Parameters:
   UserPoolClientId:
     Type: AWS::SSM::Parameter::Value<String>
     Default: "/devops-backend/userpool-client-id"
+
   Environment:
     Type: String
     Default: "dev"
