@@ -15,6 +15,9 @@ Parameters:
   Environment:
     Type: String
     Default: "dev"
+  Domain:
+    Type: String
+    Default: localhost
 #  LambdaLayerARN:
 #    Type: AWS::SSM::Parameter::Value<String>
 #    Default: /OT/Ostrum/Lambda/Layer/ARN
@@ -64,6 +67,7 @@ Resources:
       Environment:
         Variables:
           COGNITO_USER_POOL_ID:  { Ref: UserPoolId }
+          DOMAIN: { Ref: Domain}
 
       Policies:
         - VPCAccessPolicy: {}
@@ -101,6 +105,7 @@ Resources:
         Variables:
           COGNITO_USER_POOL_ID: { Ref: UserPoolId }
           COGNITO_CLIENT_ID: { Ref: UserPoolClientId}
+          DOMAIN: { Ref: Domain}
 
 
       Policies:

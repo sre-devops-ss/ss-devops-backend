@@ -9,6 +9,21 @@ if not CLIENT_ID:
 
 client = boto3.client("cognito-idp")
 
+ORIGIN= os.getenv("DOMAIN","localhost")
+headers= {
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': f"{ORIGIN}",
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+}
+
+def apiResponse(message, statuscode):
+
+    return  {
+        'headers':headers,
+        "statusCode":statuscode,
+        "body": json.dumps({"message": message})
+    }
+
 def lambda_handler(event, context):
 
     print("Received event:", json.dumps(event))
@@ -16,10 +31,8 @@ def lambda_handler(event, context):
     try:
 
         if "body" not in event or not isinstance(event["body"], str):
-            return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "Request body is missing or invalid"})
-            }
+            return  apiResponse("Request body is missing or invalid",400)
+
 
 
         body = json.loads(event["body"])
@@ -27,10 +40,8 @@ def lambda_handler(event, context):
         password = body.get("password")
 
         if not username or not password:
-            return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "Username and password are required"})
-            }
+            return apiResponse("Username and password are required",400)
+
 
 
         response = client.initiate_auth(
@@ -47,6 +58,7 @@ def lambda_handler(event, context):
 
         return {
             "statusCode": 200,
+            "headers": headers,
             "body": json.dumps({
                 "access_token": auth_result["AccessToken"],
                 "id_token": auth_result["IdToken"],
@@ -56,27 +68,13 @@ def lambda_handler(event, context):
         }
 
     except json.JSONDecodeError:
-        return {
-            "statusCode": 400,
-            "body": json.dumps({"error": "Invalid JSON in request body"})
-        }
+        return apiResponse("Invalid JSON in request body",400)
+
     except client.exceptions.NotAuthorizedException:
-        return {
-            "statusCode": 401,
-            "body": json.dumps({"error": "Incorrect username or password"})
-        }
+        return apiResponse("Incorrect username or password",401)
     except client.exceptions.UserNotFoundException:
-        return {
-            "statusCode": 404,
-            "body": json.dumps({"error": "User does not exist"})
-        }
+       return  apiResponse("User does not exist",404)
     except client.exceptions.ClientError as e:
-        return {
-            "statusCode": 500,
-            "body": json.dumps({"error": f"Cognito error: {str(e)}"})
-        }
+        return  apiResponse(str(e),500)
     except Exception as e:
-        return {
-            "statusCode": 500,
-            "body": json.dumps({"error": f"Unexpected error: {str(e)}"})
-        }
+        return apiResponse(str(e),500)
