@@ -17,7 +17,7 @@ Parameters:
     Default: "dev"
   Domain:
     Type: String
-    Default: localhost
+    Default: "*"
 #  LambdaLayerARN:
 #    Type: AWS::SSM::Parameter::Value<String>
 #    Default: /OT/Ostrum/Lambda/Layer/ARN
