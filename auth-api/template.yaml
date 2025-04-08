@@ -123,7 +123,7 @@ Resources:
     Type: AWS::SSM::Parameter
     DependsOn: ApiGatewayApi
     Properties:
-      Name: "/devops-backend/authapi/id"
+      Name: "/devops-backend/authapi/id"   #change
       Type: String
       Value: { Ref: ApiGatewayApi }
 
