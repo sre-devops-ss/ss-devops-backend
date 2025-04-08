@@ -19,7 +19,7 @@ Resources:
     Properties:
       ApiId:
         Ref: ApiGatewayID
-      ApiMappingKey: testing
+      ApiMappingKey: user
       DomainName: !Ref Customdomain
       Stage: !Ref Environment
 
