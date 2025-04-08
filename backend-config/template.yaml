@@ -8,3 +8,5 @@ Resources:
       Type: String
       Value: "awsmonitor.supportsages.com"
       Description: "Custom domain for ApiGateway for the DevOps backend"
+  
+  

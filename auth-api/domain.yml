@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create S3 Bucket.
+
+Parameters:
+  ApiGatewayID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/authapi/id"
+  Environment:
+    Type: String
+    Default: dev
+
+  Customdomain:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/api/custom_domain"
+
+Resources:
+  ApiPathMappingtesting:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      ApiId:
+        Ref: ApiGatewayID
+      ApiMappingKey: testing
+      DomainName: !Ref Customdomain
+      Stage: !Ref Environment
+

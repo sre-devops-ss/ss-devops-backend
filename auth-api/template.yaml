@@ -118,5 +118,12 @@ Resources:
                 - ssm:GetParameters
                 - ssm:GetParameter
               Resource: '*'
-#      Layers:
-#        - {Ref: LambdaLayerARN}
+
+  ApiGatewayId:
+    Type: AWS::SSM::Parameter
+    DependsOn: ApiGatewayApi
+    Properties:
+      Name: "/devops-backend/authapi/id"
+      Type: String
+      Value: { Ref: ApiGatewayApi }
+
