@@ -89,6 +89,26 @@ Resources:
       SupportedIdentityProviders:
         - COGNITO
       PreventUserExistenceErrors: ENABLED
+  
+  CognitoUserPoolClientForApiKey:
+    Type: 'AWS::Cognito::UserPoolClient'
+    Properties:
+      ClientName: devops-backend-apikey-client
+      UserPoolId: !Ref CognitoUserPool
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      GenerateSecret: false
+      AccessTokenValidity: 600  # 1 hour
+      IdTokenValidity: 600     # 1 hour
+      RefreshTokenValidity: 1  # 30 days
+      TokenValidityUnits:
+        AccessToken: seconds
+        IdToken: seconds
+        RefreshToken: days
+      SupportedIdentityProviders:
+        - COGNITO
+      PreventUserExistenceErrors: ENABLED
 
   # SSM Parameters
   SsmUserPoolId:
@@ -106,3 +126,11 @@ Resources:
       Type: String
       Value: !Ref CognitoUserPoolClient
       Description: "Cognito User Pool Client ID for the DevOps backend"
+  
+  SsmUserPoolClientIdApiKey:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/devops-backend/userpool-apikey-client-id"
+      Type: String
+      Value: !Ref CognitoUserPoolClientForApiKey
+      Description: "Cognito User Pool Client ID for temporary apikey generation for DevOps backend"
