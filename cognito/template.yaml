@@ -101,7 +101,7 @@ Resources:
       GenerateSecret: false
       AccessTokenValidity: 600  # 1 hour
       IdTokenValidity: 600     # 1 hour
-      RefreshTokenValidity: 1  # 30 days
+      RefreshTokenValidity: 3600  # 30 days
       TokenValidityUnits:
         AccessToken: seconds
         IdToken: seconds
