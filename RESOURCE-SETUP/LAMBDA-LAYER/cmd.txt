@@ -1,0 +1,2 @@
+pip install requests -t Python
+zip -r secureauth-layer.zip Python/
