@@ -1,16 +1,15 @@
+Layer creation steps
+
 mkdir -p python/lib/python3.10/site-packages
 pip install --target python/lib/python3.10/site-packages/ boto3
-
-pip install requests -t relay_layer/python
+pip install --target python/lib/python3.10/site-packages/ requests
 cp relay_layer/monitor_relay.py python/lib/python3.10/site-packages
 
 zip -r relay_layer.zip ./python
 
 
 -------
-cd relay_layer/python
-zip -r relay_layer.zip .
-zip client_lambda.zip client-provider.py 
+
 
 aws s3 cp cfn.yaml s3://ss-backend-config-ap-south-1-979453078508/
 aws s3 cp client_lambda.zip s3://ss-backend-config-ap-south-1-979453078508/
