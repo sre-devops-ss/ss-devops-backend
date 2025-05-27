@@ -5,3 +5,6 @@ pyvenv.cfg
 include
 lib
 .venv
+*.zip
+.zip
+python

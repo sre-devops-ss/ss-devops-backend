@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  RefreshToken:
+    Type: String
+    Description: 'Refresh token to be stored securely in SSM Parameter Store'
+    
+  Domain:
+    Type: String
+    Default: "awsmonitor.supportsages.com"
+    Description: 'Refresh token to be stored securely in SSM Parameter Store'
+
+Resources:
+  RefreshTokenParameter:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/refresh_token'
+      Type: String
+      Value: !Ref RefreshToken
+      Description: 'Refresh token for devops-ui cross account access'
+
+  DomainParam:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/domain'
+      Type: String
+      Value: !Ref Domain
+      Description: 'Refresh token for devops-ui cross account access'
+  
+  
+  
+  IAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: devops-ui-cross-account-test
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::979453078508:root'
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/IAMReadOnlyAccess
+        - arn:aws:iam::aws:policy/AWSCloudTrail_ReadOnlyAccess
+        - arn:aws:iam::aws:policy/AWSBudgetsReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonRDSFullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess
+      Policies:
+        - PolicyName: LambdaGetFunctionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 'lambda:GetFunction'
+                Resource: '*'
+
+  LambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: devops-ui-lambda-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - sts:GetCallerIdentity
+                  - organizations:DescribeAccount
+                Resource: "*"
+
+  DevopsBackendLayer:
+    Type: 'AWS::Lambda::LayerVersion'
+    Properties:
+      LayerName: devops-client-layer
+      Content:
+        S3Bucket: ss-backend-config-ap-south-1-979453078508
+        S3Key: relay_layer.zip
+      CompatibleRuntimes:
+        - python3.10
+      Description: layer for DevOps Backend Lambda
+
+  DevopsClientLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: devops-client-lambda
+      Handler: client-provider.lambda_handler
+      Runtime: python3.10
+      Code:
+        S3Bucket: ss-backend-config-ap-south-1-979453078508
+        S3Key: client_lambda.zip
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Layers:
+        - !Ref DevopsBackendLayer
+      Environment:
+        Variables:
+          DOMAIN: !Ref Domain
+
+  
+

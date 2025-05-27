@@ -1,13 +1,14 @@
 import os
 import json
+import sys
 import boto3
-import requests
-from monitor-relay import postData
+
+from monitor_relay import postData
 
 UPDATE_URL = "/user/update"
 
 
-ORIGIN= os.getenv("DOMAIN","localhost")
+ORIGIN= os.getenv("DOMAIN","awsmonitor.supportsages.com")
 headers= {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Origin': f"*",
