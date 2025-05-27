@@ -14,3 +14,8 @@ zip -r relay_layer.zip ./python
 aws s3 cp cfn.yaml s3://ss-backend-config-ap-south-1-979453078508/
 aws s3 cp client_lambda.zip s3://ss-backend-config-ap-south-1-979453078508/
 aws s3 cp relay_layer.zip s3://ss-backend-config-ap-south-1-979453078508/
+aws s3 cp  cfn.json s3://ss-backend-config-ap-south-1-979453078508/
+
+
+
+https://ap-south-1.console.aws.amazon.com/cloudformation/home?region=ap-south-1#/stacks/quickcreate?templateURL=https://ss-backend-config-ap-south-1-979453078508.s3.ap-south-1.amazonaws.com/cfn.yaml&stackName=cross-acct-role&param_RefreshToken=ashhshsh&param_Domain=ss.com

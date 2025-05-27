@@ -6,8 +6,8 @@ Parameters:
     
   Domain:
     Type: String
-    Default: "awsmonitor.supportsages.com"
     Description: 'Refresh token to be stored securely in SSM Parameter Store'
+    Default: awsmonitor.supportsages.com
 
 Resources:
   RefreshTokenParameter:
