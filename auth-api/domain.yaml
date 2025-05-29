@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Create S3 Bucket.
-
 Parameters:
   ApiGatewayID:
     Type: AWS::SSM::Parameter::Value<String>
