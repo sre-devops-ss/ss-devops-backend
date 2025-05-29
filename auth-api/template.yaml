@@ -168,7 +168,7 @@ Resources:
         CreateUser:
           Type: Api
           Properties:
-            Method: get
+            Method: post
             Path: /accessId
             RestApiId:
               Ref: ApiGatewayApi
