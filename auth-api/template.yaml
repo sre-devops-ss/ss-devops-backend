@@ -132,7 +132,7 @@ Resources:
           Type: Api
           Properties:
             Method: post
-            Path: /create
+            Path: /adduser
             RestApiId:
               Ref: ApiGatewayApi
       Environment:
