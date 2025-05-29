@@ -13,7 +13,7 @@ Parameters:
     Default: "/devops-backend/api/custom_domain"
 
 Resources:
-  ApiPathMappingtesting:
+  ApiPathMappingUser:
     Type: AWS::ApiGatewayV2::ApiMapping
     Properties:
       ApiId:
