@@ -118,13 +118,13 @@ Resources:
                 - ssm:GetParameters
                 - ssm:GetParameter
               Resource: '*'
-  AddUser:
+  AddUserGroup:
     Type: AWS::Serverless::Function
     Properties:
       Handler: add-user-to-group.lambda_handler
       Timeout: 30
       MemorySize: 256
-      FunctionName: Devops-AssUser
+      FunctionName: Devops-AddUserGroup
       Description: Add user to coginito group
       CodeUri: ../auth-api
       Events:
@@ -132,7 +132,7 @@ Resources:
           Type: Api
           Properties:
             Method: post
-            Path: /adduser
+            Path: /addgroup
             RestApiId:
               Ref: ApiGatewayApi
       Environment:
