@@ -188,6 +188,11 @@ Resources:
                 - ssm:GetParameters
                 - ssm:GetParameter
               Resource: '*'
+            - Sid: CognitoPolicy
+              Effect: Allow
+              Action:
+                - cognito-idp:AdminInitiateAuth
+              Resource: '*'
   
   ApiGatewayId:
     Type: AWS::SSM::Parameter
