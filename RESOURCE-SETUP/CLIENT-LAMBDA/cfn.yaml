@@ -31,7 +31,7 @@ Resources:
   IAMRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: devops-ui-cross-account-test
+      RoleName: devops-ui-cross-account
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:

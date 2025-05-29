@@ -5,7 +5,7 @@ ssm = boto3.client('ssm')
 
 REFRESH_PARAM = "/ss/backend/refresh_token"
 ORIGIN = ssm.get_parameter(Name="/ss/backend/domain")['Parameter']['Value']
-REFRESH_ID_ENDPOINT = "/user/refreshId"
+REFRESH_ID_ENDPOINT = "/user/accessId"
 
 def get_param(name):
     return ssm.get_parameter(Name=name)['Parameter']['Value']

@@ -155,7 +155,40 @@ Resources:
                 - cognito-idp:AdminCreateUser
                 - cognito-idp:AdminSetUserPassword
               Resource: '*'
+  GetAccessId:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: getAccessId.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      FunctionName: Devops-getAccessId
+      Description: get accessId usig RefreshId
+      CodeUri: ../auth-api
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Method: get
+            Path: /accessId
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: { Ref: UserPoolId }
+          DOMAIN: { Ref: Domain }
+          COGNITO_CLIENT_ID: { Ref: UserPoolClientId}
+          
 
+      Policies:
+        - VPCAccessPolicy: { }
+        - Statement:
+            - Sid: SSMGetParameterPolicy
+              Effect: Allow
+              Action:
+                - ssm:GetParameters
+                - ssm:GetParameter
+              Resource: '*'
+  
   ApiGatewayId:
     Type: AWS::SSM::Parameter
     DependsOn: ApiGatewayApi
