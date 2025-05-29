@@ -118,6 +118,43 @@ Resources:
                 - ssm:GetParameters
                 - ssm:GetParameter
               Resource: '*'
+  AddUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: add-user-to-group.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      FunctionName: Devops-AssUser
+      Description: Add user to coginito group
+      CodeUri: ../auth-api
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Method: post
+            Path: /create
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID:  { Ref: UserPoolId }
+          DOMAIN: { Ref: Domain}
+
+      Policies:
+        - VPCAccessPolicy: {}
+        - Statement:
+            - Sid: SSMGetParameterPolicy
+              Effect: Allow
+              Action:
+                - ssm:GetParameters
+                - ssm:GetParameter
+              Resource: '*'
+            - Sid: CognitoPolicy
+              Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
+              Resource: '*'
 
   ApiGatewayId:
     Type: AWS::SSM::Parameter
