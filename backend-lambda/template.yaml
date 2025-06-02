@@ -3,9 +3,10 @@ Transform: AWS::Serverless-2016-10-31
 Description: Lambda to audit aws account
 
 Parameters:
-  apigateway-url:
+  ApiGatewayUrl:
     Type: AWS::SSM::Parameter::Value<String>
     Default: "/devops-backend/lambda/apigateway-url"
+
 
 Globals:
   Function:
@@ -60,7 +61,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          API_GATEWAY_URL: !Ref apigateway-url
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
 
   IAMRoleAuditFunction:
     Type: AWS::Serverless::Function
@@ -71,7 +72,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          API_GATEWAY_URL: !Ref apigateway-url
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
 
   Ec2ReportFunction:
     Type: AWS::Serverless::Function
@@ -82,7 +83,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          API_GATEWAY_URL: !Ref apigateway-url
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
 
   ClientDataFunction:
     Type: AWS::Serverless::Function
@@ -93,7 +94,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          API_GATEWAY_URL: !Ref apigateway-url
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
 
   ResourceAuditFunction:
     Type: AWS::Serverless::Function
@@ -104,7 +105,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          API_GATEWAY_URL: !Ref apigateway-url
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
 
   CostUsageReportFunction:
     Type: AWS::Serverless::Function
@@ -115,7 +116,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          API_GATEWAY_URL: !Ref apigateway-url
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
 
   InstanceAuditFunction:
     Type: AWS::Serverless::Function
@@ -126,7 +127,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          API_GATEWAY_URL: !Ref apigateway-url
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
 
   BackupAuditFunction:
     Type: AWS::Serverless::Function
@@ -137,4 +138,4 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          API_GATEWAY_URL: !Ref apigateway-url
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
