@@ -1,0 +1,571 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Monitoring Backend for AWS Resources
+
+Globals:
+  Function:
+    Timeout: 300
+    MemorySize: 256
+    Runtime: python3.9
+    Environment:
+      Variables:
+        CASSANDRA_HOST: !Ref CassandraHost
+        CASSANDRA_PORT: !Ref CassandraPort
+        CASSANDRA_USERNAME: !Ref CassandraUsername
+        CASSANDRA_PASSWORD: !Ref CassandraPassword
+        CASSANDRA_KEYSPACE: monitoring
+        SNS_TOPIC_ARN: !Ref MonitoringSNSTopic
+
+Parameters:
+  CassandraHost:
+    Type: String
+    Default: "NONE"
+    Description: Cassandra host address
+  
+  CassandraPort:
+    Type: Number
+    Description: Cassandra port number
+    Default: 9042
+  
+  CassandraUsername:
+    Type: String
+    Default: "NONE"
+    Description: Cassandra username
+  
+  CassandraPassword:
+    Type: String
+    Default: "NONE"
+    Description: Cassandra password
+    NoEcho: true
+
+  Environment:
+    Type: String
+    Default: dev
+
+Resources:
+  
+  EC2CreateMonitoringFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      FunctionName: Devops-ec2_monitoring_create
+      Handler: ec2_create.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - cloudwatch:PutMetricAlarm
+                - cloudwatch:DescribeAlarms
+                - cloudwatch:GetMetricStatistics
+                - ec2:DescribeInstances
+                - ssm:SendCommand
+                - ssm:GetParameter
+                - sns:Publish
+              Resource: "*"
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /ec2/install
+            Method: post
+  
+  EC2FetchMetricsMonitoringFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      FunctionName: Devops-ec2_monitoring_fetch_metrics
+      Handler: ec2_create.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - cloudwatch:PutMetricAlarm
+                - cloudwatch:DescribeAlarms
+                - cloudwatch:GetMetricStatistics
+                - ec2:DescribeInstances
+                - ssm:SendCommand
+                - ssm:GetParameter
+                - sns:Publish
+              Resource: "*"
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /ec2/getMetrics
+            Method: get
+  
+  EC2FetchAlarmMonitoringFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      FunctionName: Devops-ec2_monitoring_fetch_alarm
+      Handler: ec2_create.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - cloudwatch:PutMetricAlarm
+                - cloudwatch:DescribeAlarms
+                - cloudwatch:GetMetricStatistics
+                - ec2:DescribeInstances
+                - ssm:SendCommand
+                - ssm:GetParameter
+                - sns:Publish
+              Resource: "*"
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /ec2/getAlarms
+            Method: get
+
+#  # RDS Monitoring Function
+#  RDSMonitoringFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: rds_monitoring.lambda_handler
+#      Policies:
+#        - Statement:
+#            - Effect: Allow
+#              Action:
+#                - sts:AssumeRole
+#              Resource: "*"
+#            - Effect: Allow
+#              Action:
+#                - cloudwatch:PutMetricAlarm
+#                - cloudwatch:DescribeAlarms
+#                - cloudwatch:GetMetricStatistics
+#                - rds:DescribeDBInstances
+#                - sns:Publish
+#              Resource: "*"
+#      Events:
+#        ApiEvent:
+#          Type: Api
+#          Properties:
+#            Path: /monitoring/rds
+#            Method: post
+#
+#  # Lambda Monitoring Function
+#  LambdaMonitoringFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: lambda_monitoring.lambda_handler
+#      Policies:
+#        - Statement:
+#            - Effect: Allow
+#              Action:
+#                - sts:AssumeRole
+#              Resource: "*"
+#            - Effect: Allow
+#              Action:
+#                - cloudwatch:PutMetricAlarm
+#                - cloudwatch:DescribeAlarms
+#                - cloudwatch:GetMetricStatistics
+#                - lambda:ListFunctions
+#                - logs:FilterLogEvents
+#                - sns:Publish
+#              Resource: "*"
+#      Events:
+#        ApiEvent:
+#          Type: Api
+#          Properties:
+#            Path: /monitoring/lambda
+#            Method: post
+#
+#  # Target Group Monitoring Function
+#  TargetGroupMonitoringFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: targetgroup_monitoring.lambda_handler
+#      Policies:
+#        - Statement:
+#            - Effect: Allow
+#              Action:
+#                - sts:AssumeRole
+#              Resource: "*"
+#            - Effect: Allow
+#              Action:
+#                - cloudwatch:PutMetricAlarm
+#                - cloudwatch:DescribeAlarms
+#                - cloudwatch:GetMetricStatistics
+#                - elasticloadbalancing:DescribeTargetGroups
+#                - elasticloadbalancing:DescribeLoadBalancers
+#                - sns:Publish
+#              Resource: "*"
+#      Events:
+#        ApiEvent:
+#          Type: Api
+#          Properties:
+#            Path: /monitoring/targetgroup
+#            Method: post
+#
+#  # ASG Monitoring Function
+#  ASGMonitoringFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: asg_monitoring.lambda_handler
+#      Policies:
+#        - Statement:
+#            - Effect: Allow
+#              Action:
+#                - sts:AssumeRole
+#              Resource: "*"
+#            - Effect: Allow
+#              Action:
+#                - cloudwatch:PutMetricAlarm
+#                - cloudwatch:DescribeAlarms
+#                - cloudwatch:GetMetricStatistics
+#                - autoscaling:DescribeAutoScalingGroups
+#                - ssm:SendCommand
+#                - ssm:GetParameter
+#                - sns:Publish
+#              Resource: "*"
+#      Events:
+#        ApiEvent:
+#          Type: Api
+#          Properties:
+#            Path: /monitoring/asg
+#            Method: post
+#
+#  # API Gateway
+#  MonitoringApi:
+#    Type: AWS::Serverless::Api
+#    Properties:
+#      StageName: prod
+#      Cors:
+#        AllowMethods: "'POST,OPTIONS'"
+#        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+#        AllowOrigin: "'*'"
+#
+#  # ECS Monitoring Lambda
+#  EcsMonitoringFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: ecs_monitoring.lambda_handler
+#      Runtime: python3.9
+#      Policies:
+#        - AWSLambdaBasicExecutionRole
+#        - CloudWatchFullAccess
+#        - AmazonECSFullAccess
+#      Environment:
+#        Variables:
+#          ENVIRONMENT: !Ref Environment
+#      Events:
+#        PostEcs:
+#          Type: Api
+#          Properties:
+#            RestApiId: !Ref MonitoringApi
+#            Path: /api/monitor/ecs
+#            Method: POST
+#
+#  # Metrics Collection Lambda
+#  MetricsCollectionFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: metrics_collection.lambda_handler
+#      Runtime: python3.9
+#      Policies:
+#        - AWSLambdaBasicExecutionRole
+#        - CloudWatchFullAccess
+#      Environment:
+#        Variables:
+#          ENVIRONMENT: !Ref Environment
+#      Events:
+#        GetMetrics:
+#          Type: Api
+#          Properties:
+#            RestApiId: !Ref MonitoringApi
+#            Path: /api/monitor/metrics
+#            Method: GET
+#
+#  # Alarms Management Lambda
+#  AlarmsManagementFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: alarms_management.lambda_handler
+#      Runtime: python3.9
+#      Policies:
+#        - AWSLambdaBasicExecutionRole
+#        - CloudWatchFullAccess
+#      Environment:
+#        Variables:
+#          ENVIRONMENT: !Ref Environment
+#      Events:
+#        GetAlarms:
+#          Type: Api
+#          Properties:
+#            RestApiId: !Ref MonitoringApi
+#            Path: /api/monitor/alarms
+#            Method: GET
+#
+#  # SNS Topic for Notifications
+#  MonitoringAlertsTopic:
+#    Type: AWS::SNS::Topic
+#    Properties:
+#      DisplayName: Monitoring Alerts
+#      TopicName: !Sub ${Environment}-monitoring-alerts
+#
+#  APIGatewayMonitoringFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: apigateway_monitoring.lambda_handler
+#      Runtime: python3.9
+#      Timeout: 300
+#      MemorySize: 256
+#      Environment:
+#        Variables:
+#          CASSANDRA_HOST: !Ref CassandraHost
+#          CASSANDRA_PORT: !Ref CassandraPort
+#          CASSANDRA_USERNAME: !Ref CassandraUsername
+#          CASSANDRA_PASSWORD: !Ref CassandraPassword
+#          CASSANDRA_KEYSPACE: !Ref CassandraKeyspace
+#      Policies:
+#        - Statement:
+#          - Effect: Allow
+#            Action:
+#              - apigateway:GET
+#              - cloudwatch:PutMetricAlarm
+#              - cloudwatch:DeleteAlarms
+#              - cloudwatch:DescribeAlarms
+#              - sns:Publish
+#            Resource: '*'
+#      Events:
+#        ApiEvent:
+#          Type: Api
+#          Properties:
+#            Path: /monitoring/apigateway
+#            Method: post
+#
+#  NATGatewayMonitoringFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: nat_monitoring.lambda_handler
+#      Runtime: python3.9
+#      Timeout: 300
+#      MemorySize: 256
+#      Environment:
+#        Variables:
+#          CASSANDRA_HOST: !Ref CassandraHost
+#          CASSANDRA_PORT: !Ref CassandraPort
+#          CASSANDRA_USERNAME: !Ref CassandraUsername
+#          CASSANDRA_PASSWORD: !Ref CassandraPassword
+#          CASSANDRA_KEYSPACE: !Ref CassandraKeyspace
+#      Policies:
+#        - Statement:
+#          - Effect: Allow
+#            Action:
+#              - ec2:DescribeNatGateways
+#              - cloudwatch:PutMetricAlarm
+#              - cloudwatch:DeleteAlarms
+#              - cloudwatch:DescribeAlarms
+#              - sns:Publish
+#            Resource: '*'
+#      Events:
+#        ApiEvent:
+#          Type: Api
+#          Properties:
+#            Path: /monitoring/nat
+#            Method: post
+#
+#  S3MonitoringFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: s3_monitoring.lambda_handler
+#      Runtime: python3.9
+#      Timeout: 300
+#      MemorySize: 256
+#      Environment:
+#        Variables:
+#          CASSANDRA_HOST: !Ref CassandraHost
+#          CASSANDRA_PORT: !Ref CassandraPort
+#          CASSANDRA_USERNAME: !Ref CassandraUsername
+#          CASSANDRA_PASSWORD: !Ref CassandraPassword
+#          CASSANDRA_KEYSPACE: !Ref CassandraKeyspace
+#      Policies:
+#        - Statement:
+#          - Effect: Allow
+#            Action:
+#              - s3:GetBucketNotification
+#              - s3:PutBucketNotification
+#              - s3:HeadBucket
+#              - cloudwatch:PutMetricAlarm
+#              - cloudwatch:DeleteAlarms
+#              - cloudwatch:DescribeAlarms
+#              - sns:Publish
+#            Resource: '*'
+#      Events:
+#        ApiEvent:
+#          Type: Api
+#          Properties:
+#            Path: /monitoring/s3
+#            Method: post
+#
+#  BillingMonitoringFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: billing_monitoring.lambda_handler
+#      Runtime: python3.9
+#      Timeout: 300
+#      MemorySize: 256
+#      Environment:
+#        Variables:
+#          CASSANDRA_HOST: !Ref CassandraHost
+#          CASSANDRA_PORT: !Ref CassandraPort
+#          CASSANDRA_USERNAME: !Ref CassandraUsername
+#          CASSANDRA_PASSWORD: !Ref CassandraPassword
+#          CASSANDRA_KEYSPACE: !Ref CassandraKeyspace
+#      Policies:
+#        - Statement:
+#          - Effect: Allow
+#            Action:
+#              - budgets:CreateBudget
+#              - budgets:CreateNotification
+#              - ce:CreateAnomalyMonitor
+#              - ce:CreateAnomalySubscription
+#              - cloudwatch:PutMetricAlarm
+#              - cloudwatch:DeleteAlarms
+#              - cloudwatch:DescribeAlarms
+#              - sns:Publish
+#            Resource: '*'
+#      Events:
+#        ApiEvent:
+#          Type: Api
+#          Properties:
+#            Path: /monitoring/billing
+#            Method: post
+#
+#  MetricsApiFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: metrics_api.lambda_handler
+#      Runtime: python3.9
+#      Timeout: 30
+#      MemorySize: 256
+#      Environment:
+#        Variables:
+#          CASSANDRA_HOST: !Ref CassandraHost
+#          CASSANDRA_PORT: !Ref CassandraPort
+#          CASSANDRA_USERNAME: !Ref CassandraUsername
+#          CASSANDRA_PASSWORD: !Ref CassandraPassword
+#      Policies:
+#        - Statement:
+#            - Effect: Allow
+#              Action:
+#                - cloudwatch:GetMetricStatistics
+#                - cloudwatch:DescribeAlarms
+#              Resource: '*'
+#            - Effect: Allow
+#              Action:
+#                - sts:AssumeRole
+#              Resource: '*'
+#
+#  MetricsApi:
+#    Type: AWS::Serverless::Api
+#    Properties:
+#      StageName: prod
+#      Cors:
+#        AllowMethods: "'GET,POST,OPTIONS'"
+#        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+#        AllowOrigin: "'*'"
+#
+#  MetricsApiFunctionApiPermission:
+#    Type: AWS::Lambda::Permission
+#    Properties:
+#      Action: lambda:InvokeFunction
+#      FunctionName: !Ref MetricsApiFunction
+#      Principal: apigateway.amazonaws.com
+#      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MetricsApi}/*/*/*"
+#
+#  MetricsApiFunctionRole:
+#    Type: AWS::IAM::Role
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: '2012-10-17'
+#        Statement:
+#          - Effect: Allow
+#            Principal:
+#              Service: lambda.amazonaws.com
+#            Action: sts:AssumeRole
+#      ManagedPolicyArns:
+#        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+#
+#  AlarmApiFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: alarm_api.lambda_handler
+#      Runtime: python3.9
+#      Timeout: 30
+#      MemorySize: 256
+#      Environment:
+#        Variables:
+#          CASSANDRA_HOST: !Ref CassandraHost
+#          CASSANDRA_PORT: !Ref CassandraPort
+#          CASSANDRA_USERNAME: !Ref CassandraUsername
+#          CASSANDRA_PASSWORD: !Ref CassandraPassword
+#      Policies:
+#        - Statement:
+#            - Effect: Allow
+#              Action:
+#                - cloudwatch:DescribeAlarms
+#                - cloudwatch:GetMetricStatistics
+#              Resource: '*'
+#            - Effect: Allow
+#              Action:
+#                - sts:AssumeRole
+#              Resource: '*'
+  # Cross-Account Monitoring Function
+#  CrossAccountMonitoringFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: lambda_handler.lambda_handler
+#      Policies:
+#        - Statement:
+#            - Effect: Allow
+#              Action:
+#                - sts:AssumeRole
+#              Resource: "*"
+#            - Effect: Allow
+#              Action:
+#                - cloudwatch:PutMetricAlarm
+#                - cloudwatch:DescribeAlarms
+#                - cloudwatch:GetMetricStatistics
+#                - ec2:DescribeInstances
+#                - rds:DescribeDBInstances
+#                - lambda:ListFunctions
+#                - elasticloadbalancing:DescribeTargetGroups
+#                - elasticloadbalancing:DescribeLoadBalancers
+#                - autoscaling:DescribeAutoScalingGroups
+#                - sns:Publish
+#              Resource: "*"
+#      Events:
+#        ApiEvent:
+#          Type: Api
+#          Properties:
+#            Path: /monitoring
+#            Method: post
