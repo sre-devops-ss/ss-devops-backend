@@ -9,3 +9,5 @@ lib
 .zip
 python
 bin
+bin/*
+bin*
