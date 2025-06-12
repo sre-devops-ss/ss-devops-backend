@@ -11,3 +11,5 @@ python
 bin
 bin/*
 bin*
+.venv/*
+.venv*
