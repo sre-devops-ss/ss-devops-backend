@@ -2,19 +2,19 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Monitoring Backend for AWS Resources
 
-Globals:
-  Function:
-    Timeout: 300
-    MemorySize: 256
-#    Runtime: python3.9
-    Environment:
-      Variables:
-        CASSANDRA_HOST: !Ref CassandraHost
-        CASSANDRA_PORT: !Ref CassandraPort
-        CASSANDRA_USERNAME: !Ref CassandraUsername
-        CASSANDRA_PASSWORD: !Ref CassandraPassword
-        CASSANDRA_KEYSPACE: monitoring
-        SNS_TOPIC_ARN: !Ref MonitoringSNSTopic
+#Globals:
+#  Function:
+#    Timeout: 300
+#    MemorySize: 256
+##    Runtime: python3.9
+#    Environment:
+#      Variables:
+#        CASSANDRA_HOST: !Ref CassandraHost
+#        CASSANDRA_PORT: !Ref CassandraPort
+#        CASSANDRA_USERNAME: !Ref CassandraUsername
+#        CASSANDRA_PASSWORD: !Ref CassandraPassword
+#        CASSANDRA_KEYSPACE: monitoring
+#        SNS_TOPIC_ARN: !Ref MonitoringSNSTopic
 
 Parameters:
   CassandraHost:
