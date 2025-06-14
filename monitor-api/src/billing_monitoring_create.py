@@ -1,6 +1,9 @@
 import json
 import logging
 from datetime import datetime, timedelta
+
+import boto3
+
 from utils.cassandra_client import CassandraClient
 from utils.cross_account import CrossAccountClient
 
@@ -16,6 +19,10 @@ class BillingMonitoring:
             cross_account_client (CrossAccountClient): Client for cross-account operations
         """
         self.cross_account_client = cross_account_client
+        self.ce_client=cross_account_client.get_client("ce")
+        self.budget_client=cross_account_client.get_client("budget")
+        self.cloudwatch_client=cross_account_client.get_client("cloudwatch")
+        
         self.cassandra = CassandraClient()
 
     def setup_billing_monitoring(self, config=None):
@@ -37,19 +44,15 @@ class BillingMonitoring:
             if config:
                 default_config.update(config)
             
-            # Get AWS clients using cross-account credentials
-            budgets_client = self.cross_account_client.get_client('budgets')
-            ce_client = self.cross_account_client.get_client('ce')
-            cloudwatch_client = self.cross_account_client.get_client('cloudwatch')
-            
+     
             # Set up budget monitoring
-            self._setup_budget_monitoring(budgets_client, default_config)
+            self._setup_budget_monitoring(self.budget_client, default_config)
             
             # Set up cost anomaly detection
-            self._setup_anomaly_detection(ce_client, default_config)
+            self._setup_anomaly_detection(self.ce_client, default_config)
             
             # Set up bandwidth cost monitoring
-            self._setup_bandwidth_monitoring(cloudwatch_client, default_config)
+            self._setup_bandwidth_monitoring(self.cloudwatch_client, default_config)
             
             return {
                 'statusCode': 200,
@@ -208,10 +211,11 @@ def lambda_handler(event, context):
     """Lambda handler for setting up monitoring"""
     try:
         # Get required parameters
-        account_id = event.get('account_id')
-        role_arn = event.get('role_arn')
-        region = event.get('region', 'us-east-1')
-        config = event.get('config')
+        body = json.loads(event.get('body', '{}'))
+        account_id = body.get('account_id')
+        role_arn = body.get('role_arn')
+        region = body.get('region', 'us-east-1')
+        config = body.get('config')
         
         if not all([account_id, role_arn]):
             return {
