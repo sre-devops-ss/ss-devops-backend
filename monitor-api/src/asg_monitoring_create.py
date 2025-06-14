@@ -277,7 +277,7 @@ def lambda_handler(event, context):
         
         asgClient=AsgMonitoring(cross_account_client)
         # Set up monitoring
-        asgClient.asgsetup_asg_monitoring(asg_name)
+        asgClient.setup_asg_monitoring(asg_name)
         asgClient.setup_cloudtrail_monitoring(asg_name)
         
         return {
