@@ -1,15 +1,16 @@
 import json
 import boto3
+import os
 from datetime import datetime, timedelta
-from utils import get_cassandra_session, store_alarm
 
+from utils.cross_account import CrossAccountClient
 class APIGatewayMonitoring:
-    def __init__(self):
-        self.apigateway = boto3.client('apigateway')
-        self.cloudwatch = boto3.client('cloudwatch')
-        self.session = get_cassandra_session()
+    def __init__(self,account):
+        self.apigateway = account.get_client("apigateway")
+        self.cloudwatch = account.get_client("cloudwatch")
+    
 
-    def setup_apigateway_monitoring(self, api_id, config=None):
+    def setup_apigateway_monitoring(self,api_id, config=None):
         """Set up monitoring for an API Gateway"""
         try:
             # Verify API Gateway exists
@@ -125,17 +126,8 @@ class APIGatewayMonitoring:
                 AlarmActions=config['alarm_actions']
             )
             
-            # Store alarm info in Cassandra
-            store_alarm(
-                self.session,
-                'apigateway',
-                api_id,
-                alarm_name,
-                '5XXError',
-                config['error_5xx_threshold'],
-                'GreaterThanThreshold',
-                config['period']
-            )
+        
+           
             
         except Exception as e:
             print(f"Error creating 5xx error alarm: {str(e)}")
@@ -166,17 +158,7 @@ class APIGatewayMonitoring:
                 AlarmActions=config['alarm_actions']
             )
             
-            # Store alarm info in Cassandra
-            store_alarm(
-                self.session,
-                'apigateway',
-                api_id,
-                alarm_name,
-                'Latency',
-                config['latency_threshold'],
-                'GreaterThanThreshold',
-                config['period']
-            )
+          
             
         except Exception as e:
             print(f"Error creating latency alarm: {str(e)}")
@@ -186,7 +168,27 @@ def lambda_handler(event, context):
     """Lambda handler for setting up monitoring"""
     try:
         # Get API ID from event
-        api_id = event.get('api_id')
+        body = json.loads(event.get('body', '{}'))
+        api_id = body.get('api_id')
+        ROLE_NAME = os.environ.get('ROLE_NAME')
+        account_id = body.get('account_id')
+        role_arn = f"arn:aws:iam::{account_id}:role/{ROLE_NAME}"
+        region = body.get('region', 'us-east-1')
+        config = body.get('config')
+        
+        if not all([account_id, role_arn]):
+            return {
+                'statusCode': 400,
+                'body': {
+                    'error': 'Missing required parameters',
+                    'message': 'account_id and role_arn are required'
+                }
+            }
+
+        # Initialize cross-account client
+        cross_account_client = CrossAccountClient(account_id, role_arn, region)
+        cross_account_client.assume_role()
+        
         if not api_id:
             return {
                 'statusCode': 400,
@@ -196,11 +198,10 @@ def lambda_handler(event, context):
                 }
             }
         
-        # Get configuration from event
-        config = event.get('config')
+
         
-        # Initialize monitoring
-        monitor = APIGatewayMonitoring()
+    
+        monitor = APIGatewayMonitoring(cross_account_client)
         
         # Set up monitoring
         return monitor.setup_apigateway_monitoring(api_id, config)

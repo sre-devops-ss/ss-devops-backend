@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime, timedelta
-from utils.cassandra_client import CassandraClient
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
