@@ -30,7 +30,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: python3.9
+    Runtime: python3.10
     Timeout: 300
     MemorySize: 256
     Environment:
@@ -40,8 +40,19 @@ Globals:
         CASSANDRA_USER: !Ref CassandraUsername
         CASSANDRA_PASSWORD: !Ref CassandraPassword
         CASSANDRA_KEYSPACE: monitoring
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
 
 Resources:
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "monitoring-api"
+      StageName: !Ref Environment
 
   EC2CreateMonitoringFunction:
     Type: AWS::Serverless::Function
@@ -65,6 +76,8 @@ Resources:
           Properties:
             Path: /ec2/install
             Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
 
 #  # /ec2/getMetrics
 #  EC2FetchMetricsMonitoringFunction:
@@ -113,6 +126,8 @@ Resources:
           Properties:
             Path: /ec2/getAlarms
             Method: get
+            RestApiId:
+              Ref: ApiGatewayApi
 
   # /ec2/updateMetricsToDb
   EC2UpdateMetricsDbFunction:
@@ -135,6 +150,8 @@ Resources:
           Properties:
             Path: /ec2/updateMetricsToDb
             Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
 
   # /ec2/updateAlarmToDb
   EC2UpdateAlarmsDbFunction:
@@ -157,3 +174,5 @@ Resources:
           Properties:
             Path: /ec2/updateAlarmToDb
             Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
