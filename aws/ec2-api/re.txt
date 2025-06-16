@@ -1,4 +1,0 @@
-pip3 install cassandra-driver
-pip3 install https://github.com/aws/amazon-keyspaces-tools/releases/download/v1.0.5/cassandra-sigv4-1.0.5.tar.gz
-https://docs.aws.amazon.com/keyspaces/latest/devguide/using_python_driver.html
-curl https://certs.secureserver.net/repository/sf-class2-root.crt -O
