@@ -12,7 +12,7 @@ Parameters:
     Type: Number
     Description: Cassandra port number
     Default: 9042
-  
+
   CassandraUsername:
     Type: String
     Default: "NONE"
