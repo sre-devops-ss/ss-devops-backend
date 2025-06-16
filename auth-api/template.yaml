@@ -1,0 +1,205 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Deplyment for Lambdas with common auth
+Parameters:
+  Customdomain:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/api/custom_domain"
+
+  UserPoolId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/userpool-id"
+  UserPoolClientId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/userpool-client-id"
+
+  Environment:
+    Type: String
+    Default: "dev"
+  Domain:
+    Type: String
+    Default: "*"
+#  LambdaLayerARN:
+#    Type: AWS::SSM::Parameter::Value<String>
+#    Default: /OT/Ostrum/Lambda/Layer/ARN
+
+Globals:
+  Function:
+    Runtime: python3.10
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
+
+
+Resources:
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "auth-api"
+      StageName: !Ref Environment
+      # Auth:
+      #   DefaultAuthorizer: MyCognitoAuthorizer
+      #   Authorizers:
+      #     MyCognitoAuthorizer:
+      #       UserPoolArn:
+      #         - !Ref PdUserPoolArn
+      #         - !Ref OtUserPoolArn
+
+  CreateUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: create_user_function.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      FunctionName: Devops-createUser
+      Description: To create user in cognito
+      CodeUri: ../auth-api
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Method: post
+            Path: /create
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID:  { Ref: UserPoolId }
+          DOMAIN: { Ref: Domain}
+
+      Policies:
+        - VPCAccessPolicy: {}
+        - Statement:
+            - Sid: SSMGetParameterPolicy
+              Effect: Allow
+              Action:
+                - ssm:GetParameters
+                - ssm:GetParameter
+              Resource: '*'
+            - Sid: CognitoPolicy
+              Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
+              Resource: '*'
+  LoginUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: login.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      FunctionName: Devops-Auth-login
+      Description: To login user
+      CodeUri: ../auth-api
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Method: post
+            Path: /login
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: { Ref: UserPoolId }
+          COGNITO_CLIENT_ID: { Ref: UserPoolClientId}
+          DOMAIN: { Ref: Domain}
+
+
+      Policies:
+        - VPCAccessPolicy: { }
+        - Statement:
+            - Sid: SSMGetParameterPolicy
+              Effect: Allow
+              Action:
+                - ssm:GetParameters
+                - ssm:GetParameter
+              Resource: '*'
+  AddUserGroup:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: add-user-to-group.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      FunctionName: Devops-AddUserGroup
+      Description: Add user to coginito group
+      CodeUri: ../auth-api
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Method: post
+            Path: /addgroup
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID:  { Ref: UserPoolId }
+          DOMAIN: { Ref: Domain}
+
+      Policies:
+        - VPCAccessPolicy: {}
+        - Statement:
+            - Sid: SSMGetParameterPolicy
+              Effect: Allow
+              Action:
+                - ssm:GetParameters
+                - ssm:GetParameter
+              Resource: '*'
+            - Sid: CognitoPolicy
+              Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
+                - cognito-idp:AdminAddUserToGroup
+              Resource: '*'
+  GetAccessId:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: getAccessId.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      FunctionName: Devops-getAccessId
+      Description: get accessId usig RefreshId
+      CodeUri: ../auth-api
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Method: post
+            Path: /accessId
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: { Ref: UserPoolId }
+          DOMAIN: { Ref: Domain }
+          COGNITO_CLIENT_ID: { Ref: UserPoolClientId}
+          
+
+      Policies:
+        - VPCAccessPolicy: { }
+        - Statement:
+            - Sid: SSMGetParameterPolicy
+              Effect: Allow
+              Action:
+                - ssm:GetParameters
+                - ssm:GetParameter
+              Resource: '*'
+            - Sid: CognitoPolicy
+              Effect: Allow
+              Action:
+                - cognito-idp:AdminInitiateAuth
+              Resource: '*'
+  
+  ApiGatewayId:
+    Type: AWS::SSM::Parameter
+    DependsOn: ApiGatewayApi
+    Properties:
+      Name: "/devops-backend/authapi/id"   #change
+      Type: String
+      Value: { Ref: ApiGatewayApi }
+

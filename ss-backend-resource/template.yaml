@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  LambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: 'common-lambda-role-ss-backend'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Action:
+              - 'sts:AssumeRole'
+            Principal:
+              Service:
+                - 'lambda.amazonaws.com'
+      Policies:
+        - PolicyName: 'LambdaSSMReadOnlyWithLogsPolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+
+              - Effect: 'Allow'
+                Action:
+                  - 'ssm:GetParameter'
+                  - 'ssm:DescribeParameters'
+                Resource: '*'
+
+              - Effect: 'Allow'
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: '*'
+

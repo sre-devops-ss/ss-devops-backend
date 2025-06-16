@@ -1,0 +1,588 @@
+{
+  "Parameters": {
+    "VantageID": {
+      "Description": "The Vantage customer ID to sync your account. Do not change or share this.",
+      "MinLength": "1",
+      "Type": "String"
+    },
+    "VantageHandshakeID": {
+      "Description": "The Vantage external ID to authenticate your account. Do not change or share this.",
+      "MinLength": "1",
+      "Type": "String"
+    },
+    "VantageIamRole": {
+      "Description": "The Vantage iam role which has permission to your account.",
+      "MinLength": "1",
+      "Type": "String"
+    },
+    "VantagePingbackArn": {
+      "Description": "The arn used to communicate back to Vantage.",
+      "MinLength": "1",
+      "Type": "String"
+    },
+    "VantageDomain": {
+      "Description": "The vantage domain.",
+      "MinLength": "1",
+      "Type": "String"
+    },
+    "VantageNotificationTopicArn": {
+      "Description": "The topic the S3 bucket will notify when a new report is uploaded.",
+      "MinLength": "1",
+      "Type": "String"
+    },
+    "ReportName": {
+      "Description": "The name of the Cost and Usage Report.",
+      "MinLength": "1",
+      "Type": "String"
+    },
+    "BucketName": {
+      "Description": "The name of the bucket where the cost and usage reports will be stored.",
+      "MinLength": "1",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "CrossAccountRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": { "Ref": "VantageIamRole" }
+              },
+              "Action": ["sts:AssumeRole"],
+              "Condition": {
+                "StringEquals": {
+                  "sts:ExternalId": { "Ref": "VantageHandshakeID" }
+                }
+              }
+            }
+          ]
+        },
+        "ManagedPolicyArns": ["arn:aws:iam::aws:policy/job-function/ViewOnlyAccess"],
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "root",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": [
+                    "aws-portal:ViewBilling",
+                    "aws-portal:ViewUsage",
+                    "budgets:Describe*",
+                    "budgets:View*",
+                    "ce:Get*",
+                    "ce:Describe*",
+                    "ce:List*",
+                    "cur:Describe*",
+                    "pricing:*",
+                    "organizations:Describe*",
+                    "organizations:List*",
+                    "savingsplans:Describe*"
+                  ],
+                  "Resource": "*",
+                  "Effect": "Allow",
+                  "Sid": "VantageBillingReadOnly"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "VantageAutoPilot",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": [
+                    "ec2:AcceptReservedInstancesExchangeQuote",
+                    "ec2:CancelReservedInstancesListing",
+                    "ec2:CreateReservedInstancesListing",
+                    "ec2:DeleteQueuedReservedInstances",
+                    "ec2:CreateTags",
+                    "ec2:ModifyReservedInstances",
+                    "ec2:PurchaseReservedInstancesOffering",
+                    "rds:PurchaseReservedDBInstancesOffering",
+                    "elasticache:PurchaseReservedCacheNodesOffering",
+                    "es:PurchaseReservedInstanceOffering",
+                    "redshift:PurchaseReservedNodeOffering",
+                    "redshift:AcceptReservedNodeExchange",
+                    "redshift:GetReservedNodeExchangeConfigurationOptions",
+                    "redshift:GetReservedNodeExchangeOfferings",
+                    "savingsplans:*",
+                    "servicequotas:Get*",
+                    "servicequotas:List*",
+                    "servicequotas:RequestServiceQuotaIncrease",
+                    "support:*",
+                    "ce:StartSavingsPlansPurchaseRecommendationGeneration"
+                  ],
+                  "Resource": "*",
+                  "Effect": "Allow"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "VantageCloudWatchMetricsReadOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": [
+                    "logs:List*",
+                    "logs:Describe*",
+                    "logs:StartQuery",
+                    "logs:StopQuery",
+                    "logs:Filter*",
+                    "logs:Get*"
+                  ],
+                  "Resource": "arn:aws:logs:*:*:log-group:/aws/containerinsights/*",
+                  "Effect": "Allow",
+                  "Sid": "VantageContainerInsightsReadOnly"
+                },
+                {
+                  "Action": ["logs:GetQueryResults", "logs:DescribeLogGroups"],
+                  "Resource": "arn:aws:logs:*:*:log-group::log-stream:*",
+                  "Effect": "Allow",
+                  "Sid": "VantageContainerInsightsLogStream"
+                },
+                {
+                  "Action": [
+                    "autoscaling:Describe*",
+                    "cloudwatch:Describe*",
+                    "cloudwatch:Get*",
+                    "cloudwatch:List*"
+                  ],
+                  "Resource": "*",
+                  "Effect": "Allow",
+                  "Sid": "VantageContainerMetricsAccess"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "VantageAdditionalResourceReadOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Resource": "*",
+                  "Action": [
+                    "a4b:List*",
+                    "a4b:Search*",
+                    "acm:Describe*",
+                    "acm:List*",
+                    "acm-pca:Describe*",
+                    "acm-pca:List*",
+                    "amplify:ListApps",
+                    "amplify:ListBranches",
+                    "amplify:ListDomainAssociations",
+                    "amplify:ListJobs",
+                    "application-autoscaling:Describe*",
+                    "applicationinsights:Describe*",
+                    "applicationinsights:List*",
+                    "appmesh:Describe*",
+                    "appmesh:List*",
+                    "appstream:Describe*",
+                    "appstream:List*",
+                    "appsync:List*",
+                    "autoscaling-plans:Describe*",
+                    "athena:Batch*",
+                    "backup:Describe*",
+                    "backup:List*",
+                    "batch:List*",
+                    "batch:Describe*",
+                    "budgets:Describe*",
+                    "budgets:View*",
+                    "ce:Get*",
+                    "chatbot:Describe*",
+                    "chime:List*",
+                    "chime:Retrieve*",
+                    "chime:Search*",
+                    "chime:Validate*",
+                    "cloud9:Describe*",
+                    "cloud9:List*",
+                    "clouddirectory:List*",
+                    "cloudformation:Describe*",
+                    "cloudhsm:List*",
+                    "cloudhsm:Describe*",
+                    "cloudsearch:Describe*",
+                    "cloudtrail:Describe*",
+                    "cloudtrail:Get*",
+                    "cloudtrail:List*",
+                    "cloudwatch:Describe*",
+                    "codeartifact:DescribeDomain",
+                    "codeartifact:DescribePackageVersion",
+                    "codeartifact:DescribeRepository",
+                    "codeartifact:ListDomains",
+                    "codeartifact:ListPackages",
+                    "codeartifact:ListPackageVersionAssets",
+                    "codeartifact:ListPackageVersionDependencies",
+                    "codeartifact:ListPackageVersions",
+                    "codeartifact:ListRepositories",
+                    "codeartifact:ListRepositoriesInDomain",
+                    "codebuild:DescribeCodeCoverages",
+                    "codebuild:DescribeTestCases",
+                    "codebuild:Get*",
+                    "codebuild:List*",
+                    "codebuild:BatchGetBuilds",
+                    "codebuild:BatchGetProjects",
+                    "codecommit:Describe*",
+                    "codeguru-profiler:Describe*",
+                    "codeguru-profiler:List*",
+                    "codeguru-reviewer:Describe*",
+                    "codeguru-reviewer:List*",
+                    "codepipeline:List*",
+                    "codepipeline:Get*",
+                    "codestar:Describe*",
+                    "compute-optimizer:Get*",
+                    "connect:Describe*",
+                    "dataexchange:List*",
+                    "datasync:Describe*",
+                    "datasync:List*",
+                    "datapipeline:Describe*",
+                    "datapipeline:List*",
+                    "detective:List*",
+                    "discovery:Describe*",
+                    "dms:Describe*",
+                    "ds:Check*",
+                    "ds:Describe*",
+                    "ds:List*",
+                    "dynamodb:Describe*",
+                    "dynamodb:List*",
+                    "ec2:Describe*",
+                    "ec2:GetCapacityReservationUsage",
+                    "ec2:GetEbsEncryptionByDefault",
+                    "ec2:SearchTransitGatewayRoutes",
+                    "ecr:BatchCheck*",
+                    "ecr:BatchGet*",
+                    "ecr:Describe*",
+                    "ecr:List*",
+                    "eks:DescribeCluster",
+                    "eks:DescribeUpdate",
+                    "eks:Describe*",
+                    "eks:ListClusters",
+                    "eks:ListUpdates",
+                    "eks:List*",
+                    "elasticache:List*",
+                    "elasticbeanstalk:Check*",
+                    "elasticbeanstalk:Describe*",
+                    "elasticbeanstalk:List*",
+                    "elasticbeanstalk:Request*",
+                    "elasticbeanstalk:Retrieve*",
+                    "elasticbeanstalk:Validate*",
+                    "elasticfilesystem:Describe*",
+                    "elasticloadbalancing:Describe*",
+                    "elasticmapreduce:Describe*",
+                    "elasticmapreduce:View*",
+                    "elemental-appliances-software:List*",
+                    "es:Describe*",
+                    "es:List*",
+                    "events:Describe*",
+                    "events:List*",
+                    "events:Test*",
+                    "firehose:Describe*",
+                    "fsx:Describe*",
+                    "fsx:List*",
+                    "freertos:Describe*",
+                    "freertos:List*",
+                    "glacier:Describe*",
+                    "globalaccelerator:Describe*",
+                    "globalaccelerator:List*",
+                    "glue:ListCrawlers",
+                    "glue:ListDevEndpoints",
+                    "glue:ListJobs",
+                    "glue:ListMLTransforms",
+                    "glue:ListTriggers",
+                    "glue:ListWorkflows",
+                    "guardduty:List*",
+                    "health:Describe*",
+                    "iam:Get*",
+                    "imagebuilder:List*",
+                    "importexport:List*",
+                    "inspector:Describe*",
+                    "inspector:Preview*",
+                    "iot:Describe*",
+                    "iotanalytics:Describe*",
+                    "iotanalytics:List*",
+                    "iotsitewise:Describe*",
+                    "iotsitewise:List*",
+                    "kafka:Describe*",
+                    "kafka:List*",
+                    "kinesisanalytics:Describe*",
+                    "kinesisanalytics:Discover*",
+                    "kinesisanalytics:List*",
+                    "kinesisvideo:Describe*",
+                    "kinesisvideo:List*",
+                    "kinesis:Describe*",
+                    "kinesis:List*",
+                    "kms:Describe*",
+                    "kms:List*",
+                    "license-manager:List*",
+                    "logs:ListTagsLogGroup",
+                    "logs:TestMetricFilter",
+                    "mediaconvert:DescribeEndpoints",
+                    "mediaconvert:List*",
+                    "mediapackage:List*",
+                    "mediapackage:Describe*",
+                    "medialive:List*",
+                    "medialive:Describe*",
+                    "mediaconnect:List*",
+                    "mediaconnect:Describe*",
+                    "mediapackage-vod:List*",
+                    "mediapackage-vod:Describe*",
+                    "mediastore:List*",
+                    "mediastore:Describe*",
+                    "mediatailor:List*",
+                    "mediatailor:Describe*",
+                    "mgh:Describe*",
+                    "mgh:List*",
+                    "mobilehub:Describe*",
+                    "mobilehub:List*",
+                    "mobiletargeting:List*",
+                    "mq:Describe*",
+                    "mq:List*",
+                    "opsworks-cm:List*",
+                    "organizations:Describe*",
+                    "outposts:List*",
+                    "outposts:Get*",
+                    "personalize:Describe*",
+                    "personalize:List*",
+                    "pi:DescribeDimensionKeys",
+                    "qldb:ListLedgers",
+                    "qldb:ListTagsForResource",
+                    "ram:List*",
+                    "rekognition:List*",
+                    "rds:List*",
+                    "redshift:Describe*",
+                    "redshift:View*",
+                    "resource-groups:Get*",
+                    "resource-groups:List*",
+                    "resource-groups:Search*",
+                    "robomaker:BatchDescribe*",
+                    "robomaker:Describe*",
+                    "robomaker:List*",
+                    "route53domains:Check*",
+                    "route53domains:Get*",
+                    "route53domains:View*",
+                    "s3:List*",
+                    "s3:GetBucketLocation",
+                    "s3:GetBucketTagging",
+                    "schemas:Describe*",
+                    "schemas:List*",
+                    "secretsmanager:List*",
+                    "secretsmanager:Describe*",
+                    "securityhub:Describe*",
+                    "securityhub:List*",
+                    "serverlessrepo:List*",
+                    "servicecatalog:Describe*",
+                    "servicediscovery:Get*",
+                    "servicediscovery:List*",
+                    "ses:Describe*",
+                    "shield:Describe*",
+                    "snowball:Describe*",
+                    "snowball:List*",
+                    "sqs:List*",
+                    "ssm:Describe*",
+                    "ssm:List*",
+                    "sso:Describe*",
+                    "sso:List*",
+                    "sso:Search*",
+                    "sso-directory:Describe*",
+                    "sso-directory:List*",
+                    "sso-directory:Search*",
+                    "states:List*",
+                    "states:Describe*",
+                    "storagegateway:Describe*",
+                    "storagegateway:List*",
+                    "sts:GetCallerIdentity",
+                    "sts:GetSessionToken",
+                    "swf:Describe*",
+                    "synthetics:Describe*",
+                    "synthetics:List*",
+                    "tag:Get*",
+                    "transfer:Describe*",
+                    "transfer:List*",
+                    "transcribe:List*",
+                    "wafv2:Describe*",
+                    "worklink:Describe*",
+                    "worklink:List*"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "CostandUsageReportBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DependsOn": "CrossAccountRole",
+      "Properties": {
+        "AccessControl": "Private",
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "Id": "ExpireOldObjects",
+              "Status": "Enabled",
+              "ExpirationInDays": 200
+            }
+          ]
+        },
+        "NotificationConfiguration": {
+          "TopicConfigurations": [
+            {
+              "Topic": {
+                "Ref": "VantageNotificationTopicArn"
+              },
+              "Event": "s3:ObjectCreated:*",
+              "Filter": {
+                "S3Key": {
+                  "Rules": [
+                    {
+                      "Name": "suffix",
+                      "Value": ".gz"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "AnalyticsConfigurations": [],
+        "BucketName": {
+          "Ref": "BucketName"
+        }
+      }
+    },
+    "CostandUsageReportBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "DependsOn": "CostandUsageReportBucket",
+      "Properties": {
+        "Bucket": {
+          "Ref": "CostandUsageReportBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": ["s3:GetBucketAcl", "s3:GetBucketPolicy"],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Sub": "arn:aws:s3:::${CostandUsageReportBucket}"
+              },
+              "Principal": {
+                "Service": "billingreports.amazonaws.com"
+              }
+            },
+            {
+              "Action": ["s3:PutObject"],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Sub": "arn:aws:s3:::${CostandUsageReportBucket}/*"
+              },
+              "Principal": {
+                "Service": "billingreports.amazonaws.com"
+              }
+            },
+            {
+              "Action": ["s3:GetObject", "s3:GetObjectAcl"],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Sub": "arn:aws:s3:::${CostandUsageReportBucket}/*"
+              },
+              "Principal": {
+                "AWS": {
+                  "Fn::GetAtt": ["CrossAccountRole", "Arn"]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CostandUsageReport": {
+      "Type": "AWS::CUR::ReportDefinition",
+      "DependsOn": "CostandUsageReportBucketPolicy",
+      "Properties": {
+        "AdditionalArtifacts": [],
+        "AdditionalSchemaElements": ["RESOURCES"],
+        "Compression": "GZIP",
+        "Format": "textORcsv",
+        "RefreshClosedReports": true,
+        "ReportName": {
+          "Ref": "ReportName"
+        },
+        "ReportVersioning": "OVERWRITE_REPORT",
+        "S3Bucket": {
+          "Ref": "CostandUsageReportBucket"
+        },
+        "S3Prefix": "daily-v1",
+        "S3Region": "us-east-1",
+        "TimeUnit": "DAILY"
+      }
+    },
+    "ObjectGetIAMPolicy": {
+      "Type": "AWS::IAM::Policy",
+      "DependsOn": "CostandUsageReportBucket",
+      "Properties": {
+        "PolicyName": "ObjectGetCostandUsageReports",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject", "s3:GetObjectAcl"],
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:aws:s3:::${CostandUsageReportBucket}/*"
+                }
+              ]
+            }
+          ]
+        },
+        "Roles": [{ "Ref": "CrossAccountRole" }]
+      }
+    },
+    "VantagePingResource": {
+      "Type": "Custom::VantagePingResource",
+      "DeletionPolicy": "Retain",
+      "Version": "1.0",
+      "Properties": {
+        "ServiceToken": {
+          "Ref": "VantagePingbackArn"
+        },
+        "RoleArn": {
+          "Value": { "Fn::GetAtt": ["CrossAccountRole", "Arn"] }
+        },
+        "BucketArn": {
+          "Value": {
+            "Fn::GetAtt": ["CostandUsageReportBucket", "Arn"]
+          }
+        },
+        "VantageID": {
+          "Value": { "Ref": "VantageID" }
+        },
+        "VantageDomain": {
+          "Value": { "Ref": "VantageDomain" }
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "RoleArn": {
+      "Value": { "Fn::GetAtt": ["CrossAccountRole", "Arn"] },
+      "Description": "The ARN value of the Cross-Account Role with IAM read-only permissions. Add this ARN value to Vantage."
+    }
+  }
+}

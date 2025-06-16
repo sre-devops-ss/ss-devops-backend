@@ -1,0 +1,141 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda to audit aws account
+
+Parameters:
+  ApiGatewayUrl:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/lambda/apigateway-url"
+
+
+Globals:
+  Function:
+    Timeout: 900
+    MemorySize: 256
+    Runtime: python3.11
+    Architectures: [x86_64]
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource: "*"
+              - Effect: Allow
+                Action: sts:AssumeRole
+                Resource:
+                  - arn:aws:iam::979453078508:role/devops-ui-cross-account
+                  - arn:aws:iam::861276115734:role/devops-ui-cross-account
+                  - arn:aws:iam::318590069095:role/devops-ui-cross-account
+                  - arn:aws:iam::301832774858:role/devops-ui-cross-account
+                  - arn:aws:iam::339712786273:role/devops-ui-cross-account
+
+  IAMAuditFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: IAMAuditFunction
+      CodeUri: ../backend-lambda
+      Handler: IAMAuditFunction.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
+
+  IAMRoleAuditFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: IAMRoleAuditFunction
+      CodeUri: ../backend-lambda
+      Handler: IAMRoleAuditFunction.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
+
+  Ec2ReportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: Ec2ReportFunction
+      CodeUri: ../backend-lambda
+      Handler: ec2-report.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
+
+  ClientDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ClientDataFunction
+      CodeUri: ../backend-lambda
+      Handler: client-data.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
+
+  ResourceAuditFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ResourceAuditFunction
+      CodeUri: ../backend-lambda
+      Handler: resource-audit.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
+
+  CostUsageReportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: CostUsageReportFunction
+      CodeUri: ../backend-lambda
+      Handler: cost-usage.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
+
+  InstanceAuditFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: InstanceAuditFunction
+      CodeUri: ../backend-lambda
+      Handler: ec2AndRds.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
+
+  BackupAuditFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: BackupAuditFunction
+      CodeUri: ../backend-lambda
+      Handler: backup-audit.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          API_GATEWAY_URL: !Ref ApiGatewayUrl

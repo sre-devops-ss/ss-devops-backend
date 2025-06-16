@@ -1,0 +1,159 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Monitoring Backend for AWS Resources
+
+Parameters:
+  CassandraHost:
+    Type: String
+    Default: "NONE"
+    Description: Cassandra host address
+  
+  CassandraPort:
+    Type: Number
+    Description: Cassandra port number
+    Default: 9042
+  
+  CassandraUsername:
+    Type: String
+    Default: "NONE"
+    Description: Cassandra username
+  
+  CassandraPassword:
+    Type: String
+    Default: "NONE"
+    Description: Cassandra password
+    NoEcho: true
+
+  Environment:
+    Type: String
+    Default: dev
+
+Globals:
+  Function:
+    Runtime: python3.9
+    Timeout: 300
+    MemorySize: 256
+    Environment:
+      Variables:
+        CASSANDRA_HOST: !Ref CassandraHost
+        CASSANDRA_PORT: !Ref CassandraPort
+        CASSANDRA_USER: !Ref CassandraUsername
+        CASSANDRA_PASSWORD: !Ref CassandraPassword
+        CASSANDRA_KEYSPACE: monitoring
+
+Resources:
+
+  EC2CreateMonitoringFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../ec2-api
+      FunctionName: Devops-ec2_monitoring_create
+      Handler: ec2_monitoring_create.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - ec2:DescribeInstances
+                - ssm:*
+                - sns:Publish
+              Resource: "*"
+      Events:
+        InstallAPI:
+          Type: Api
+          Properties:
+            Path: /ec2/install
+            Method: post
+
+#  # /ec2/getMetrics
+#  EC2FetchMetricsMonitoringFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: ../ec2-api
+#      FunctionName: Devops-ec2_monitoring_fetch_metrics
+#      Handler: ec2_monitoring_fetch.lambda_handler
+#      Policies:
+#        - Statement:
+#            - Effect: Allow
+#              Action:
+#                - sts:AssumeRole
+#                - cloudwatch:*
+#                - ec2:DescribeInstances
+#                - ssm:*
+#                - sns:Publish
+#              Resource: "*"
+#      Events:
+#        GetMetricsAPI:
+#          Type: Api
+#          Properties:
+#            Path: /ec2/getMetrics
+#            Method: get
+
+  # /ec2/getAlarms
+  EC2FetchAlarmMonitoringFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../ec2-api
+      FunctionName: Devops-ec2_monitoring_fetch_alarm
+      Handler: ec2_monitoring_alarm_db_updator.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - ec2:DescribeInstances
+                - ssm:*
+                - sns:Publish
+              Resource: "*"
+      Events:
+        GetAlarmsAPI:
+          Type: Api
+          Properties:
+            Path: /ec2/getAlarms
+            Method: get
+
+  # /ec2/updateMetricsToDb
+  EC2UpdateMetricsDbFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../ec2-api
+      FunctionName: Devops-ec2_update_metrics_db
+      Handler: ec2_monitoring-metric-db-updator.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudwatch:*
+                - sts:AssumeRole
+                - ec2:DescribeInstances
+              Resource: "*"
+      Events:
+        UpdateMetricsToDbAPI:
+          Type: Api
+          Properties:
+            Path: /ec2/updateMetricsToDb
+            Method: post
+
+  # /ec2/updateAlarmToDb
+  EC2UpdateAlarmsDbFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../ec2-api
+      FunctionName: Devops-ec2_update_alarm_db
+      Handler: ec2_monitoring_alarm_db_updator.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudwatch:*
+                - sts:AssumeRole
+                - ec2:DescribeInstances
+              Resource: "*"
+      Events:
+        UpdateAlarmToDbAPI:
+          Type: Api
+          Properties:
+            Path: /ec2/updateAlarmToDb
+            Method: post

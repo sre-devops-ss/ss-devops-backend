@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: The AWS CloudFormation template for this Serverless application
+Resources:
+  CustomDomain:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/devops-backend/api/custom_domain"
+      Type: String
+      Value: "awsmonitor.supportsages.com"
+      Description: "Custom domain for ApiGateway for the DevOps backend"
+  
+  
