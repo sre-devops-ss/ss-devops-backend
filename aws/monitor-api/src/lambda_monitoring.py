@@ -1,14 +1,13 @@
 import json
 import boto3
 from datetime import datetime, timedelta
-from utils import get_cassandra_session, store_alarm
+
 
 class LambdaMonitoring:
-    def __init__(self):
-        self.lambda_client = boto3.client('lambda')
-        self.cloudwatch = boto3.client('cloudwatch')
-        self.logs = boto3.client('logs')
-        self.session = get_cassandra_session()
+    def __init__(self,account):
+        self.lambda_client = account.get_client('lambda')
+        self.cloudwatch =account.get_client('cloudwatch')
+        self.logs = account.get_client('logs')
 
     def setup_lambda_monitoring(self, function_name, config=None):
         """Set up monitoring for a Lambda function"""
@@ -59,7 +58,7 @@ class LambdaMonitoring:
             }
 
     def _create_error_alarm(self, function_name, config):
-        """Create CloudWatch alarm for Lambda errors"""
+        
         try:
             alarm_name = f"{function_name}-error-alarm"
             
@@ -83,28 +82,17 @@ class LambdaMonitoring:
                 AlarmActions=config['alarm_actions']
             )
             
-            # Store alarm info in Cassandra
-            store_alarm(
-                self.session,
-                'lambda',
-                function_name,
-                alarm_name,
-                'Errors',
-                config['error_threshold'],
-                'GreaterThanThreshold',
-                config['period']
-            )
             
         except Exception as e:
             print(f"Error creating error alarm: {str(e)}")
             raise
 
     def _create_duration_alarm(self, function_name, config):
-        """Create CloudWatch alarm for Lambda duration"""
+        
         try:
             alarm_name = f"{function_name}-duration-alarm"
             
-            # Create alarm
+            
             self.cloudwatch.put_metric_alarm(
                 AlarmName=alarm_name,
                 AlarmDescription=f"Alarm for {function_name} duration",
@@ -124,24 +112,13 @@ class LambdaMonitoring:
                 AlarmActions=config['alarm_actions']
             )
             
-            # Store alarm info in Cassandra
-            store_alarm(
-                self.session,
-                'lambda',
-                function_name,
-                alarm_name,
-                'Duration',
-                config['duration_threshold'],
-                'GreaterThanThreshold',
-                config['period']
-            )
             
         except Exception as e:
             print(f"Error creating duration alarm: {str(e)}")
             raise
 
     def _setup_log_metric_filter(self, function_name, config):
-        """Set up CloudWatch Logs metric filter for Lambda errors"""
+       
         try:
             log_group_name = f"/aws/lambda/{function_name}"
             filter_name = f"{function_name}-error-filter"
@@ -161,7 +138,7 @@ class LambdaMonitoring:
                 ]
             )
             
-            # Create alarm for the metric
+        
             alarm_name = f"{function_name}-log-error-alarm"
             self.cloudwatch.put_metric_alarm(
                 AlarmName=alarm_name,
@@ -182,26 +159,14 @@ class LambdaMonitoring:
                 AlarmActions=config['alarm_actions']
             )
             
-            # Store alarm info in Cassandra
-            store_alarm(
-                self.session,
-                'lambda',
-                function_name,
-                alarm_name,
-                metric_name,
-                config['error_threshold'],
-                'GreaterThanThreshold',
-                config['period']
-            )
             
         except Exception as e:
             print(f"Error setting up log metric filter: {str(e)}")
             raise
 
 def lambda_handler(event, context):
-    """Lambda handler for setting up monitoring"""
+    
     try:
-        # Get function name from event
         function_name = event.get('function_name')
         if not function_name:
             return {
@@ -212,13 +177,10 @@ def lambda_handler(event, context):
                 }
             }
         
-        # Get configuration from event
         config = event.get('config')
         
-        # Initialize monitoring
         monitor = LambdaMonitoring()
         
-        # Set up monitoring
         return monitor.setup_lambda_monitoring(function_name, config)
         
     except Exception as e:
