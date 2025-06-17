@@ -217,7 +217,7 @@ def setup_ec2_monitoring(cross_account_client, instances, config=None):
 
 def lambda_handler(event, context):
     try:
-        # Get instance ID from the event
+        # Get parameters from the event
         body = json.loads(event.get('body', '{}'))
         ROLE_NAME = os.environ.get('ROLE_NAME')
         account_id = body.get('account_id')
@@ -225,38 +225,66 @@ def lambda_handler(event, context):
         region = body.get('region', 'us-east-1')
         config = body.get('config')
         
-        if not all([account_id, role_arn]):
+        if not all([account_id, ROLE_NAME]):
             return {
                 'statusCode': 400,
-                'body': {
+                'body': json.dumps({
                     'error': 'Missing required parameters',
-                    'message': 'account_id and role_arn are required'
-                }
+                    'message': 'account_id and ROLE_NAME are required'
+                })
             }
         
         # Initialize cross-account client
         cross_account_client = CrossAccountClient(account_id, role_arn, region)
-        cross_account_client.assume_role()
-        
-
-        instance_id = body.get('instance_id')
-        
-        if not instance_id:
+        if not cross_account_client.assume_role():
             return {
-                'statusCode': 400,
-                'body': json.dumps({'error': 'instance_id is required'})
+                'statusCode': 500,
+                'body': json.dumps({'error': 'Failed to assume cross-account role'})
             }
         
-        # Set up monitoring
-        alarms = setup_ec2_monitoring(instance_id)
+        # Get EC2 client
+        ec2_client = cross_account_client.get_client('ec2')
         
-        return {
-            'statusCode': 200,
-            'body': json.dumps({
-                'message': 'EC2 monitoring enabled successfully',
-                'alarms': alarms
-            })
-        }
+        # Get instance IDs to monitor
+        instance_ids = body.get('instance_ids', [])
+        if not instance_ids:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': 'instance_ids is required'})
+            }
+        
+        # Get EC2 instance details
+        try:
+            response = ec2_client.describe_instances(
+                InstanceIds=instance_ids
+            )
+            instances = []
+            for reservation in response['Reservations']:
+                instances.extend(reservation['Instances'])
+        except Exception as e:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': f'Failed to describe instances: {str(e)}'})
+            }
+        
+        # Set up monitoring for the instances
+        success = setup_ec2_monitoring(cross_account_client, instances, config)
+        
+        if success:
+            return {
+                'statusCode': 200,
+                'body': json.dumps({
+                    'message': 'EC2 monitoring enabled successfully',
+                    'instances': [instance['InstanceId'] for instance in instances]
+                })
+            }
+        else:
+            return {
+                'statusCode': 500,
+                'body': json.dumps({
+                    'error': 'Failed to set up EC2 monitoring'
+                })
+            }
         
     except Exception as e:
         return {

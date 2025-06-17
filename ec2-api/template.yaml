@@ -40,6 +40,8 @@ Globals:
         CASSANDRA_USER: !Ref CassandraUsername
         CASSANDRA_PASSWORD: !Ref CassandraPassword
         CASSANDRA_KEYSPACE: monitoring
+        ROLE_NAME: EC2CrossAccountMetricsRole
+        USE_AWS_KEYSPACE: "false"
   Api:
     Cors:
       AllowMethods: "'GET,POST,PUT,OPTIONS'"
@@ -79,37 +81,13 @@ Resources:
             RestApiId:
               Ref: ApiGatewayApi
 
-#  # /ec2/getMetrics
-#  EC2FetchMetricsMonitoringFunction:
-#    Type: AWS::Serverless::Function
-#    Properties:
-#      CodeUri: ../ec2-api
-#      FunctionName: Devops-ec2_monitoring_fetch_metrics
-#      Handler: ec2_monitoring_fetch.lambda_handler
-#      Policies:
-#        - Statement:
-#            - Effect: Allow
-#              Action:
-#                - sts:AssumeRole
-#                - cloudwatch:*
-#                - ec2:DescribeInstances
-#                - ssm:*
-#                - sns:Publish
-#              Resource: "*"
-#      Events:
-#        GetMetricsAPI:
-#          Type: Api
-#          Properties:
-#            Path: /ec2/getMetrics
-#            Method: get
-
-  # /ec2/getAlarms
-  EC2FetchAlarmMonitoringFunction:
+  # /ec2/getMetrics
+  EC2FetchMetricsFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../ec2-api
-      FunctionName: Devops-ec2_monitoring_fetch_alarm
-      Handler: ec2_monitoring_alarm_db_updator.lambda_handler
+      FunctionName: Devops-ec2_fetch_metrics
+      Handler: ec2_metrics_fetch.lambda_handler
       Policies:
         - Statement:
             - Effect: Allow
@@ -117,8 +95,37 @@ Resources:
                 - sts:AssumeRole
                 - cloudwatch:*
                 - ec2:DescribeInstances
-                - ssm:*
-                - sns:Publish
+              Resource: "*"
+      Events:
+        GetMetricsAPI:
+          Type: Api
+          Properties:
+            Path: /ec2/getMetrics
+            Method: get
+            RestApiId:
+              Ref: ApiGatewayApi
+        PostMetricsAPI:
+          Type: Api
+          Properties:
+            Path: /ec2/getMetrics
+            Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
+
+  # /ec2/getAlarms
+  EC2FetchAlarmsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../ec2-api
+      FunctionName: Devops-ec2_fetch_alarms
+      Handler: ec2_alarms_fetch.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - ec2:DescribeInstances
               Resource: "*"
       Events:
         GetAlarmsAPI:
@@ -126,6 +133,13 @@ Resources:
           Properties:
             Path: /ec2/getAlarms
             Method: get
+            RestApiId:
+              Ref: ApiGatewayApi
+        PostAlarmsAPI:
+          Type: Api
+          Properties:
+            Path: /ec2/getAlarms
+            Method: post
             RestApiId:
               Ref: ApiGatewayApi
 

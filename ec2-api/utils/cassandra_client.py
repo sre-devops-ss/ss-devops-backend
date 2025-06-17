@@ -29,6 +29,8 @@ class CassandraClient:
 
     def __init__(self, host=None, port=None):
         keyspace_name = os.environ.get('CASSANDRA_KEYSPACE', 'monitoring')
+        self.region = os.environ.get('AWS_REGION', 'us-east-1')
+        
         if(os.environ.get('USE_AWS_KEYSPACE') == 'true'):
             
             boto_session = boto3.Session()
@@ -41,7 +43,7 @@ class CassandraClient:
         else:
             userName=os.environ.get('CASSANDRA_USER','monitoringuser')
             password=os.environ.get('CASSANDRA_PASSWORD','pass')
-            self.port = int(port or os.environ.get('CASSANDRA_PORT', 9142))
+            self.port = int(port or os.environ.get('CASSANDRA_PORT', 9042))
             host_env = os.environ.get('CASSANDRA_HOST', "192.168.0.1")
             hosts = [h.strip() for h in host_env.split(",") if h.strip()]
             
@@ -54,9 +56,18 @@ class CassandraClient:
             
         """Initialize Cassandra client with environment variables"""
 
-        query = "CREATE KEYSPACE "+keyspace_name+" WITH replication "+ "= {'class':'SimpleStrategy', 'replication_factor':1};";
-        self.session.execute(query);
-        self.session.set_keyspace(keyspace_name)
+        try:
+            query = "CREATE KEYSPACE IF NOT EXISTS "+keyspace_name+" WITH replication "+ "= {'class':'SimpleStrategy', 'replication_factor':1};";
+            self.session.execute(query);
+            self.session.set_keyspace(keyspace_name)
+        except Exception as e:
+            logger.warning(f"Could not create keyspace {keyspace_name}: {str(e)}")
+            # Try to use existing keyspace
+            try:
+                self.session.set_keyspace(keyspace_name)
+            except Exception as e2:
+                logger.error(f"Could not set keyspace {keyspace_name}: {str(e2)}")
+                raise
 
         
         

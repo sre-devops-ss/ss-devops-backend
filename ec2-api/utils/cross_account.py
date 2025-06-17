@@ -1,4 +1,5 @@
 import boto3
+import json
 from botocore.exceptions import ClientError
 import logging
 
@@ -7,10 +8,11 @@ logger.setLevel(logging.INFO)
 
 class CrossAccountClient:
     """Handles cross-account authentication and AWS client creation."""
-    def __init__(self, account_id, role_arn, region='us-east-1'):
+    def __init__(self, account_id, role_arn, region='us-east-1', external_id=None):
         self.account_id = account_id
         self.role_arn = role_arn
         self.region = region
+        self.external_id = external_id
         self.credentials = None
         self._clients = {}
 
@@ -18,10 +20,17 @@ class CrossAccountClient:
         """Assume role in the target account."""
         try:
             sts_client = boto3.client('sts')
-            response = sts_client.assume_role(
-                RoleArn=self.role_arn,
-                RoleSessionName='MonitoringSession'
-            )
+            
+            assume_role_params = {
+                'RoleArn': self.role_arn,
+                'RoleSessionName': 'MonitoringSession'
+            }
+            
+            # Add external ID if provided for additional security
+            if self.external_id:
+                assume_role_params['ExternalId'] = self.external_id
+            
+            response = sts_client.assume_role(**assume_role_params)
             self.credentials = response['Credentials']
             return True
         except ClientError as e:
@@ -42,6 +51,13 @@ class CrossAccountClient:
                 aws_session_token=self.credentials['SessionToken']
             )
         return self._clients[service_name]
+
+    def store_monitoring_config(self, resource_type, config):
+        """Store monitoring configuration for later use."""
+        # This could be extended to store config in a database
+        # For now, we'll just log it
+        logger.info(f"Stored monitoring config for {resource_type}: {config}")
+        return True
 
 def get_account_id_from_role_arn(role_arn):
     """Extract account ID from role ARN"""
