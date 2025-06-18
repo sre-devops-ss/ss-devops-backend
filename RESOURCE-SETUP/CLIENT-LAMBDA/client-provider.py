@@ -5,7 +5,7 @@ import boto3
 
 from monitor_relay import postData
 
-UPDATE_URL = "/user/update"
+UPDATE_URL = "/api/user/update"
 
 
 ORIGIN= os.getenv("DOMAIN","awsmonitor.supportsages.com")
