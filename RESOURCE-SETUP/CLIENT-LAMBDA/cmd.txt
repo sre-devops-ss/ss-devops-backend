@@ -1,13 +1,17 @@
 Layer creation steps
 
+cd RESOURCE-SETUP/CLIENT-LAMBDA
+---------
+
+
+
 mkdir -p python/lib/python3.10/site-packages
 pip install --target python/lib/python3.10/site-packages/ boto3
 pip install --target python/lib/python3.10/site-packages/ requests
 cp relay_layer/monitor_relay.py python/lib/python3.10/site-packages
 
 zip -r relay_layer.zip ./python
-
-
+zip client_lambda.zip client-provider.py
 -------
 
 
