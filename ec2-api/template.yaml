@@ -190,3 +190,11 @@ Resources:
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
+  
+  ApiGatewayId:
+    Type: AWS::SSM::Parameter
+    DependsOn: ApiGatewayApi
+    Properties:
+      Name: "/devops-backend/ec2api/id"   #change
+      Type: String
+      Value: { Ref: ApiGatewayApi }
