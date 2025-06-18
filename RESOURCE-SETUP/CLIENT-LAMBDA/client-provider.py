@@ -21,16 +21,18 @@ def apiResponse(message, statuscode):
         "statusCode":statuscode,
         "body": json.dumps({"message": message})
     }
-def get_account_details():
-    sts_client = boto3.client('sts')
-    identity = sts_client.get_caller_identity()
-    account_id = identity["Account"]
-
-    org_client = boto3.client('organizations')
-    account_detail = org_client.describe_account(AccountId=account_id)
-    account_name = account_detail['Account']['Name']
-
-    return account_id, account_name
+# def get_account_details():
+#     sts_client = boto3.client('sts')
+#     identity = sts_client.get_caller_identity()
+#     account_id = identity["Account"]
+# 
+#     # org_client = boto3.client('organizations')
+#     # account_detail = org_client.describe_account(AccountId=account_id)
+#     # account_name = account_detail['Account']['Name']
+#     # account_name = "test"
+# 
+# 
+#     return account_id
 
 def post_account_update(account_id, account_name):
     payload = {
@@ -38,11 +40,13 @@ def post_account_update(account_id, account_name):
         "account_name": account_name,
         "dataType": "account"
     }
-    return postData(UPDATE_URL,payload)
+    return postData(UPDATE_URL, payload)
+
 
 def lambda_handler(event, context):
     try:
-        account_id, account_name = get_account_details()
+        account_name = os.getenv("ACCOUNT_NAME")
+        account_id = os.getenv("ACCOUNT_NUMBER")
         response = post_account_update(account_id, account_name)
         if response.status_code in [401, 403]:
             print(response.text)
@@ -50,6 +54,5 @@ def lambda_handler(event, context):
             return apiResponse("Account updated successfully", 200)
         else:
             return apiResponse(f"Failed to update account: {response.text}",response.status_code )
-
     except Exception as e:
         return apiResponse(str(e), 500)

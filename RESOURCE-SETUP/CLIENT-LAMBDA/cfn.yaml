@@ -3,6 +3,10 @@ Parameters:
   RefreshToken:
     Type: String
     Description: 'Refresh token to be stored securely in SSM Parameter Store'
+  
+  AccountName:
+    Type: String
+    
     
   Domain:
     Type: String
@@ -115,6 +119,8 @@ Resources:
       Environment:
         Variables:
           DOMAIN: !Ref Domain
+          ACCOUNT_NUMBER: !Ref "AWS::AccountId"
+          ACCOUNT_NAME: !Ref AccountName
 
   
 
