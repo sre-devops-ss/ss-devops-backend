@@ -55,7 +55,7 @@ Resources:
   ApiGatewayApi:
     Type: AWS::Serverless::Api
     Properties:
-      Name: "monitoring-api"
+      Name: "ec2-api"
       StageName: !Ref Environment
 
   EC2CreateMonitoringFunction:
@@ -78,7 +78,7 @@ Resources:
         InstallAPI:
           Type: Api
           Properties:
-            Path: /ec2/install
+            Path: /install
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
@@ -102,14 +102,14 @@ Resources:
         GetMetricsAPI:
           Type: Api
           Properties:
-            Path: /ec2/getMetrics
+            Path: /getMetrics
             Method: get
             RestApiId:
               Ref: ApiGatewayApi
         PostMetricsAPI:
           Type: Api
           Properties:
-            Path: /ec2/getMetrics
+            Path: /getMetrics
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
@@ -133,14 +133,14 @@ Resources:
         GetAlarmsAPI:
           Type: Api
           Properties:
-            Path: /ec2/getAlarms
+            Path: /getAlarms
             Method: get
             RestApiId:
               Ref: ApiGatewayApi
         PostAlarmsAPI:
           Type: Api
           Properties:
-            Path: /ec2/getAlarms
+            Path: /getAlarms
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
@@ -164,7 +164,7 @@ Resources:
         UpdateMetricsToDbAPI:
           Type: Api
           Properties:
-            Path: updateMetricsToDb
+            Path: /updateMetricsToDb
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
@@ -188,7 +188,7 @@ Resources:
         UpdateAlarmToDbAPI:
           Type: Api
           Properties:
-            Path: updateAlarmToDb
+            Path: /updateAlarmToDb
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
