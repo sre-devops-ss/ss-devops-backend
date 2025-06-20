@@ -3,6 +3,9 @@ Transform: AWS::Serverless-2016-10-31
 Description: Monitoring Backend for AWS Resources
 
 Parameters:
+  SnsTopicArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/authapi/id"
   CassandraHost:
     Type: String
     Default: "NONE"
@@ -162,7 +165,7 @@ Resources:
         UpdateMetricsToDbAPI:
           Type: Api
           Properties:
-            Path: /ec2/updateMetricsToDb
+            Path: updateMetricsToDb
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
@@ -186,7 +189,7 @@ Resources:
         UpdateAlarmToDbAPI:
           Type: Api
           Properties:
-            Path: /ec2/updateAlarmToDb
+            Path: updateAlarmToDb
             Method: post
             RestApiId:
               Ref: ApiGatewayApi

@@ -118,7 +118,7 @@ def setup_cloudwatch_agent(instance_id):
         print(f"Error setting up CloudWatch agent: {str(e)}")
         raise
 
-def setup_ec2_monitoring(cross_account_client, instances, config=None):
+def setup_ec2_monitoring(cross_account_client, instances, config=None,sns_topic_arn=None ):
     """
     Set up monitoring for EC2 instances using cross-account authentication
     
@@ -135,7 +135,7 @@ def setup_ec2_monitoring(cross_account_client, instances, config=None):
             'disk_threshold': 85,
             'evaluation_periods': 2,
             'period': 300,
-            'alarm_actions': []
+            'alarm_actions': [sns_topic_arn]
         }
         
         # Merge with user config
@@ -220,6 +220,7 @@ def lambda_handler(event, context):
         # Get parameters from the event
         body = json.loads(event.get('body', '{}'))
         ROLE_NAME = os.environ.get('ROLE_NAME')
+        sns_topic_arn_parameter_name = "/devops-backend/snstopic/arn"
         account_id = body.get('account_id')
         role_arn = f"arn:aws:iam::{account_id}:role/{ROLE_NAME}"
         region = body.get('region', 'us-east-1')
@@ -244,8 +245,14 @@ def lambda_handler(event, context):
         
         # Get EC2 client
         ec2_client = cross_account_client.get_client('ec2')
+        ssm_client = cross_account_client.get_client('ssm')
+
+        sns_responce = ssm_client.get_parameter(
+                    Name=sns_topic_arn_parameter_name,
+                    WithDecryption=False )
+
+        sns_topic_arn = sns_responce['Parameter']['Value']
         
-        # Get instance IDs to monitor
         instance_ids = body.get('instance_ids', [])
         if not instance_ids:
             return {
@@ -268,7 +275,7 @@ def lambda_handler(event, context):
             }
         
         # Set up monitoring for the instances
-        success = setup_ec2_monitoring(cross_account_client, instances, config)
+        success = setup_ec2_monitoring(cross_account_client, instances, config,sns_topic_arn)
         
         if success:
             return {
