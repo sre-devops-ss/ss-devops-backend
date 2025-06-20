@@ -51,7 +51,6 @@ Globals:
       AllowHeaders: "'*'"
       AllowOrigin: "'*'"
       AllowCredentials: "'*'"
-
 Resources:
   ApiGatewayApi:
     Type: AWS::Serverless::Api
