@@ -66,7 +66,6 @@ def lambda_handler(event, context):
                 "message": "Login successful"
             })
         }
-
     except json.JSONDecodeError:
         return apiResponse("Invalid JSON in request body",400)
 
