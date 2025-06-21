@@ -33,6 +33,10 @@ Parameters:
     Type: String
     Description: Comma-separated list of emails to subscribe
   
+  CrossRoleName:
+    Type: String
+    Default: "devops-ui-cross-account"
+  
     
 Resources:
   RefreshTokenParameter:
@@ -53,10 +57,10 @@ Resources:
   
   
   
-  IAMRole:
+  CrossAccountIAMRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: devops-ui-cross-account
+      RoleName: !Ref CrossRoleName
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -80,7 +84,20 @@ Resources:
               - Effect: Allow
                 Action: 'lambda:GetFunction'
                 Resource: '*'
-  
+  CrossAccountRoleArnParamStore:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/cross-account-role-arn'
+      Type: String
+      Value: !GetAtt CrossAccountIAMRole.Arn
+      Description: 'cross account role arn used by ss backend'
+  CrossAccountRoleNameParamStore:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/cross-account-role-name'
+      Type: String
+      Value: !Ref CrossAccountIAMRole
+      Description: 'cross account role name used by ss backend'  
   LambdaExecutionRole:
     Type: 'AWS::IAM::Role'
     Properties:

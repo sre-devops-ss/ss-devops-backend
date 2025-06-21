@@ -41,6 +41,11 @@ Parameters:
   Environment:
     Type: String
     Default: dev
+  
+  CrossAccRoleName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/ss/backend/cross-role-name"
+
 
 Resources:
   
@@ -123,6 +128,7 @@ Resources:
                 - ssm:SendCommand
                 - ssm:GetParameter
                 - sns:Publish
+              
               Resource: "*"
       Events:
         ApiEvent:

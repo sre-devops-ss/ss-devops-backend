@@ -30,7 +30,14 @@ Parameters:
   Environment:
     Type: String
     Default: dev
-
+    
+  CrossAccRoleName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: '/ss/backend/cross-account-role-name'
+  CrossAccRoleArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: '/ss/backend/cross-account-role-arn'
+    
 Globals:
   Function:
     Runtime: python3.10
@@ -82,6 +89,9 @@ Resources:
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
 
   # /ec2/getMetrics
   EC2FetchMetricsFunction:
