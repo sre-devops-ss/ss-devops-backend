@@ -225,7 +225,7 @@ def lambda_handler(event, context):
         role_arn = f"arn:aws:iam::{account_id}:role/{ROLE_NAME}"
         region = body.get('region', 'us-east-1')
         config = body.get('config')
-        
+    
         if not all([account_id, ROLE_NAME]):
             return {
                 'statusCode': 400,
