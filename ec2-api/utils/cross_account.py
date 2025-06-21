@@ -23,7 +23,7 @@ class CrossAccountClient:
             
             assume_role_params = {
                 'RoleArn': self.role_arn,
-                'RoleSessionName': 'MonitoringSession'
+                'RoleSessionName': 'CrossAccSession'
             }
             
             # Add external ID if provided for additional security
