@@ -220,10 +220,11 @@ def lambda_handler(event, context):
         # Get parameters from the event
         body = json.loads(event.get('body', '{}'))
         ROLE_NAME = os.environ.get('ROLE_NAME')
+        REGION = os.environ.get('REGION')
         sns_topic_arn_parameter_name = "/devops-backend/snstopic/arn"
         account_id = body.get('account_id')
         role_arn = f"arn:aws:iam::{account_id}:role/{ROLE_NAME}"
-        region = body.get('region', 'us-east-1')
+        region = body.get('region') or REGION 
         config = body.get('config')
     
         if not all([account_id, ROLE_NAME]):
@@ -252,6 +253,7 @@ def lambda_handler(event, context):
                     WithDecryption=False )
 
         sns_topic_arn = sns_responce['Parameter']['Value']
+        
         
         instance_ids = body.get('instance_ids', [])
         if not instance_ids:

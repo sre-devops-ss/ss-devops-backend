@@ -59,6 +59,14 @@ Globals:
       AllowOrigin: "'*'"
       AllowCredentials: "'*'"
 Resources:
+  RegionParam:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/region'
+      Type: String
+      Value: !Ref "AWS::Region"
+      Description: 'AWS region the stack is deployed in'
+
   ApiGatewayApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -92,6 +100,7 @@ Resources:
       Environment:
         Variables:
           ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
 
   # /ec2/getMetrics
   EC2FetchMetricsFunction:
@@ -126,6 +135,7 @@ Resources:
       Environment:
         Variables:
           ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
 
   # /ec2/getAlarms
   EC2FetchAlarmsFunction:
@@ -160,6 +170,7 @@ Resources:
       Environment:
         Variables:
           ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
 
   # /ec2/updateMetricsToDb
   EC2UpdateMetricsDbFunction:
@@ -187,6 +198,7 @@ Resources:
       Environment:
         Variables:
           ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
 
   # /ec2/updateAlarmToDb
   EC2UpdateAlarmsDbFunction:
@@ -214,6 +226,7 @@ Resources:
       Environment:
         Variables:
           ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
   
   ApiGatewayId:
     Type: AWS::SSM::Parameter

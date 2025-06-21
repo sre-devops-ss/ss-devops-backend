@@ -39,6 +39,14 @@ Parameters:
   
     
 Resources:
+  RegionParam:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/region'
+      Type: String
+      Value: !Ref "AWS::Region"
+      Description: 'AWS region the stack is deployed in'
+
   RefreshTokenParameter:
     Type: 'AWS::SSM::Parameter'
     Properties:
