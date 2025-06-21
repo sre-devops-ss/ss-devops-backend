@@ -123,6 +123,9 @@ Resources:
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
 
   # /ec2/getAlarms
   EC2FetchAlarmsFunction:
@@ -154,6 +157,9 @@ Resources:
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
 
   # /ec2/updateMetricsToDb
   EC2UpdateMetricsDbFunction:
@@ -178,6 +184,9 @@ Resources:
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
 
   # /ec2/updateAlarmToDb
   EC2UpdateAlarmsDbFunction:
@@ -202,6 +211,9 @@ Resources:
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
   
   ApiGatewayId:
     Type: AWS::SSM::Parameter
