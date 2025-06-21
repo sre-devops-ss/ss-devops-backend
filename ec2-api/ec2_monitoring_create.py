@@ -3,10 +3,10 @@ import boto3
 import base64
 import os
 import logging
+import time
 from datetime import datetime, timedelta
 from utils.cross_account import CrossAccountClient
-ec2 = boto3.client('ec2')
-ssm = boto3.client('ssm')
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -52,9 +52,11 @@ def get_cloudwatch_agent_config():
         }
     }
 
-def is_cloudwatch_agent_running(instance_id):
+def is_cloudwatch_agent_running(instance_id,cross_account_client):
     """Check if CloudWatch agent is running on the EC2 instance via SSM."""
     try:
+        ssm = cross_account_client.get_client('ssm')
+   
         response = ssm.send_command(
             InstanceIds=[instance_id],
             DocumentName='AWS-RunShellScript',
@@ -77,9 +79,11 @@ def is_cloudwatch_agent_running(instance_id):
         logger.error(f"Error checking CloudWatch agent status: {str(e)}")
         return False
 
-def setup_cloudwatch_agent(instance_id):
+def setup_cloudwatch_agent(instance_id,cross_account_client):
     """Set up CloudWatch agent on EC2 instance if not already running."""
-    if is_cloudwatch_agent_running(instance_id):
+    ssm = cross_account_client.get_client('ssm')
+    
+    if is_cloudwatch_agent_running(instance_id,cross_account_client):
         logger.info(f"CloudWatch agent already running on {instance_id}")
         return
     try:
@@ -117,8 +121,119 @@ def setup_cloudwatch_agent(instance_id):
     except Exception as e:
         print(f"Error setting up CloudWatch agent: {str(e)}")
         raise
+def attach_monitoring_role(instance_id,cross_account_client,region=None,):
+    ec2=cross_account_client.get_client('ec2')
+    iam=cross_account_client.get_client('iam')
+    instance = ec2.describe_instances(InstanceIds=[instance_id])['Reservations'][0]['Instances'][0]
+    
+    
+    iam_instance_profile = instance.get('IamInstanceProfile')
+    instance_name = next((tag['Value'] for tag in instance.get('Tags', []) if tag['Key'] == 'Name'), instance_id)
 
-def setup_ec2_monitoring(cross_account_client, instances, config=None,sns_topic_arn=None ):
+    policy_name = f"{instance_name}-CloudWatchAccessPolicy"
+    role_name = f"{instance_name}-MonitoringRole"
+
+    monitoring_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "cloudwatch:PutMetricData",
+                    "ec2:DescribeVolumes",
+                    "ec2:DescribeTags",
+                    "logs:PutLogEvents",
+                    "logs:DescribeLogStreams",
+                    "logs:DescribeLogGroups",
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup"
+                ],
+                "Resource": "*"
+            }
+        ]
+    }
+
+    # Add SSM managed policy ARN
+    ssm_managed_policy_arn = 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore'
+
+    if iam_instance_profile:
+        profile_arn = iam_instance_profile['Arn']
+        profile_name = profile_arn.split('/')[-1]
+        profile = iam.get_instance_profile(InstanceProfileName=profile_name)
+        role_name_attached = profile['InstanceProfile']['Roles'][0]['RoleName']
+
+        print(f"[INFO] Instance already has IAM role: {role_name_attached}. Adding inline policy...")
+
+        iam.put_role_policy(
+            RoleName=role_name_attached,
+            PolicyName=policy_name,
+            PolicyDocument=json.dumps(monitoring_policy)
+        )
+    else:
+        print(f"[INFO] Instance has no IAM role. Creating role and attaching...")
+
+        # Create IAM role with EC2 trust policy
+        trust_policy = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "ec2.amazonaws.com"},
+                    "Action": "sts:AssumeRole"
+                }
+            ]
+        }
+
+        try:
+            iam.create_role(
+                RoleName=role_name,
+                AssumeRolePolicyDocument=json.dumps(trust_policy),
+                Description=f"Monitoring role for instance {instance_id}"
+            )
+            print(f"[INFO] Created IAM role: {role_name}")
+        except iam.exceptions.EntityAlreadyExistsException:
+            print(f"[WARN] Role {role_name} already exists.")
+
+        # Attach inline monitoring policy
+        iam.put_role_policy(
+            RoleName=role_name,
+            PolicyName=policy_name,
+            PolicyDocument=json.dumps(monitoring_policy)
+        )
+
+        # Attach SSM managed policy
+        iam.attach_role_policy(
+            RoleName=role_name,
+            PolicyArn=ssm_managed_policy_arn
+        )
+
+        # Create instance profile and attach role
+        try:
+            iam.create_instance_profile(InstanceProfileName=role_name)
+            time.sleep(2)  # Wait for IAM to propagate
+        except iam.exceptions.EntityAlreadyExistsException:
+            print(f"[WARN] Instance profile {role_name} already exists.")
+
+        try:
+            iam.add_role_to_instance_profile(
+                InstanceProfileName=role_name,
+                RoleName=role_name
+            )
+            time.sleep(2)
+        except iam.exceptions.LimitExceededException:
+            print(f"[WARN] Role already attached to profile")
+
+        # Attach instance profile to instance
+        ec2.associate_iam_instance_profile(
+            IamInstanceProfile={'Name': role_name},
+            InstanceId=instance_id
+        )
+        print(f"[INFO] Attached instance profile {role_name} to instance {instance_id}")
+
+
+
+
+def setup_ec2_monitoring(cross_account_client, instances, config=None,sns_topic_arn=None,region=None, ):
     """
     Set up monitoring for EC2 instances using cross-account authentication
     
@@ -126,6 +241,7 @@ def setup_ec2_monitoring(cross_account_client, instances, config=None,sns_topic_
         cross_account_client (CrossAccountClient): Authenticated client for cross-account operations
         instances (list): List of EC2 instances to monitor
         config (dict): Optional configuration overrides
+        :param sns_topic_arn: 
     """
     try:
         # Default monitoring configuration
@@ -154,7 +270,8 @@ def setup_ec2_monitoring(cross_account_client, instances, config=None,sns_topic_
             
             # Create CPU Utilization alarm
             cpu_alarm_name = f"{instance_name}-cpu-utilization"
-            setup_cloudwatch_agent(instance_id)
+            attach_monitoring_role(instance_id,cross_account_client)
+            setup_cloudwatch_agent(instance_id,cross_account_client)
             cloudwatch.put_metric_alarm(
                 AlarmName=cpu_alarm_name,
                 AlarmDescription=f"CPU utilization alarm for {instance_name}",
@@ -278,7 +395,7 @@ def lambda_handler(event, context):
             }
         
         # Set up monitoring for the instances
-        success = setup_ec2_monitoring(cross_account_client, instances, config,sns_topic_arn)
+        success = setup_ec2_monitoring(cross_account_client, instances,config,sns_topic_arn,region)
         
         if success:
             return {
