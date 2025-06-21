@@ -154,7 +154,7 @@ def setup_ec2_monitoring(cross_account_client, instances, config=None,sns_topic_
             
             # Create CPU Utilization alarm
             cpu_alarm_name = f"{instance_name}-cpu-utilization"
-            
+            setup_cloudwatch_agent(instance_id)
             cloudwatch.put_metric_alarm(
                 AlarmName=cpu_alarm_name,
                 AlarmDescription=f"CPU utilization alarm for {instance_name}",
