@@ -42,7 +42,7 @@ Resources:
   RegionParam:
     Type: 'AWS::SSM::Parameter'
     Properties:
-      Name: '/ss/backend/region'
+      Name: '/ss/backend/api/region'
       Type: String
       Value: !Ref "AWS::Region"
       Description: 'AWS region the stack is deployed in'
@@ -92,6 +92,13 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: 'lambda:GetFunction'
+                Resource: '*'
+        - PolicyName: IAM-update
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 'iam:PutRolePolicy'
                 Resource: '*'
   CrossAccountRoleArnParamStore:
     Type: 'AWS::SSM::Parameter'

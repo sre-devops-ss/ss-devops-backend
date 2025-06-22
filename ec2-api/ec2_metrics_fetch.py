@@ -95,7 +95,7 @@ def get_cloudwatch_client(account_id=None, role_name=None, region='us-east-1'):
         # Client account operation
         return boto3.client('cloudwatch', region_name=region)
 
-def fetch_metric_data(cloudwatch_client, instance_id, metric_name, namespace, start_time, end_time, period=300):
+def fetch_metric_data(cross_account_client, instance_id, metric_name, namespace, start_time, end_time, period=300):
     """
     Fetch metric data from CloudWatch
     
@@ -112,13 +112,14 @@ def fetch_metric_data(cloudwatch_client, instance_id, metric_name, namespace, st
         list: List of metric data points
     """
     try:
+        ec2_client = cross_account_client.get_client('ec2')
+        cloudwatch_client = cross_account_client.get_client('cloudwatch')
         dimensions = [{'Name': 'InstanceId', 'Value': instance_id}]
         
         # Add additional dimensions for CWAgent metrics
         if namespace == 'CWAgent':
             # Try to get instance type for additional dimension
             try:
-                ec2_client = boto3.client('ec2')
                 response = ec2_client.describe_instances(InstanceIds=[instance_id])
                 if response['Reservations']:
                     instance_type = response['Reservations'][0]['Instances'][0]['InstanceType']
@@ -141,7 +142,7 @@ def fetch_metric_data(cloudwatch_client, instance_id, metric_name, namespace, st
         logger.error(f"Error fetching metric {metric_name} for instance {instance_id}: {str(e)}")
         return []
 
-def fetch_all_metrics(cloudwatch_client, instance_id, start_time, end_time, period=300):
+def fetch_all_metrics(cross_account_client, instance_id, start_time, end_time, period=300):
     """
     Fetch all available metrics for an EC2 instance
     
@@ -155,6 +156,8 @@ def fetch_all_metrics(cloudwatch_client, instance_id, start_time, end_time, peri
     Returns:
         dict: Dictionary containing all metrics data
     """
+    ec2_client = cross_account_client.get_client('ec2')
+    cloudwatch_client = cross_account_client.get_client('cloudwatch')
     all_metrics = {}
     
     for metric_config in EC2_METRICS:
@@ -162,7 +165,7 @@ def fetch_all_metrics(cloudwatch_client, instance_id, start_time, end_time, peri
         namespace = metric_config['namespace']
         
         data_points = fetch_metric_data(
-            cloudwatch_client, 
+            cross_account_client, 
             instance_id, 
             metric_name, 
             namespace, 
@@ -259,6 +262,13 @@ def lambda_handler(event, context):
         end_time = body.get('end_time')
         period = int(body.get('period', 300))
         requested_metrics = body.get('metrics', [])
+        role_arn = f"arn:aws:iam::{account_id}:role/{role_name}"
+        cross_account_client = CrossAccountClient(account_id, role_arn, region)
+        if not cross_account_client.assume_role():
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': 'Failed to assume cross-account role'})
+            }
         
         # Validate required parameters
         if not instance_id:
@@ -280,19 +290,8 @@ def lambda_handler(event, context):
                 })
             }
         
-        # Get CloudWatch client
-        try:
-            cloudwatch_client = get_cloudwatch_client(account_id, role_name, region)
-        except Exception as e:
-            return {
-                'statusCode': 500,
-                'body': json.dumps({
-                    'error': f'Failed to get CloudWatch client: {str(e)}'
-                })
-            }
-        
-        # Fetch metrics
-        all_metrics = fetch_all_metrics(cloudwatch_client, instance_id, start_dt, end_dt, period)
+      
+        all_metrics = fetch_all_metrics(cross_account_client, instance_id, start_dt, end_dt, period)
         
         # Filter metrics if specific ones were requested
         if requested_metrics:
