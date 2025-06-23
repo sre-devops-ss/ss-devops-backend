@@ -112,54 +112,6 @@ class CloudWatchMonitor:
             pass
         return None
 
-def lambda_handler(event, context):
-    try:
-        params = json.loads(event.get('body', '{}')) if event.get('body') else event.get('queryStringParameters')
-
-        role_name = os.environ['ROLE_NAME']
-        region = os.environ.get('REGION', 'us-east-1')
-        account_id = params['account_id']
-        instance_id = params['instance_id']
-        alarm_name = params['alarm_name']
-        metric_name = params['metric_name']
-        namespace = params.get('namespace', 'CWAgent')
-        start_time = params.get('start_time')
-        end_time = params.get('end_time')
-        next_token = params.get('next_token')
-
-        monitor = CloudWatchMonitor(account_id, region, role_name)
-
-        result = monitor.get_alarm(alarm_name, start_time=start_time, end_time=end_time, next_token=next_token)
-        created = False
-        if not result:
-            alarm = monitor.create_alarm(
-                alarm_name=alarm_name,
-                instance_id=instance_id,
-                metric_name=metric_name,
-                threshold=int(params.get('threshold', 80)),
-                evaluation_periods=int(params.get('evaluation_periods', 2)),
-                period=int(params.get('period', 60)),
-                namespace=namespace,
-                stat=params.get('stat', 'Average'),
-                alarm_actions=params.get('alarm_actions', [])
-            )
-            created = True
-            result = monitor.get_alarm(alarm_name, start_time=start_time, end_time=end_time, next_token=next_token)
-
-        return {
-            'statusCode': 200,
-            'body': json.dumps({
-                'alarm': result['alarm'],
-                'created': created,
-                'next_token': result.get('next_token')
-            }, default=str)
-        }
-
-    except Exception as e:
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': str(e)})
-        }
 
 # Example API call (GET or POST)
 # POST body:

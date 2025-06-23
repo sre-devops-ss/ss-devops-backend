@@ -18,7 +18,7 @@ def lambda_handler(event, context):
         account_id = params['account_id']
         instance_id = params['instance_id']
         metric_name = params['metric_name']
-        namespace = params.get('namespace', 'CWAgent')
+        namespace = params.get('namespace', 'AWS/EC2') 
         stat=params.get('stat','Average')
         period=params.get('period',60)
         start_time = params.get('start_time') 

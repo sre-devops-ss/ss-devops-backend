@@ -20,7 +20,7 @@ def lambda_handler(event, context):
         instance_id = params['instance_id']
         alarm_name = params['alarm_name']
         metric_name = params['metric_name']
-        namespace = params.get('namespace', 'CWAgent')
+        namespace = params.get('namespace', 'AWS/EC2')
         start_time = params.get('start_time')
         end_time = params.get('end_time')
         next_token = params.get('next_token')

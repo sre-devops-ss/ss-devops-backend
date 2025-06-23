@@ -114,6 +114,10 @@ To use cross-account functionality, you need:
 - `end_time` (optional): End time in ISO format
 - `period` (optional): Data point period in seconds (default: 300)
 - `metrics` (optional): Array of specific metrics to fetch
+- namespace (optional): Namespace for specific metrics to fetch default is `AWS/EC2` and can be changed to `CWAgent` for custom metrics
+- `unit` (optional): Unit for specific metrics to fetch
+- `description` (optional): Description for specific metrics to fetch
+- `data_points` (optional): Array of specific data points to fetch
 
 **Sample POST Payloads**:
 
