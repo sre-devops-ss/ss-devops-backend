@@ -59,11 +59,11 @@ class CloudWatchMonitor:
             'next_token': response.get('NextToken')
         }
 
-    def create_alarm(self, alarm_name, instance_id, metric_name, threshold=80, evaluation_periods=2,
-                     period=60, namespace='CWAgent', stat='Average', comparison_operator='GreaterThanThreshold',
+    def create_alarm(self, alarm_name, metric_name,namespace,dimensions, threshold=80, evaluation_periods=2,
+                     period=60, stat='Average', comparison_operator='GreaterThanThreshold',
                      alarm_actions=[]):
 
-        dimensions = [{'Name': 'InstanceId', 'Value': instance_id}]
+         
         self.cloudwatch.put_metric_alarm(
             AlarmName=alarm_name,
             MetricName=metric_name,

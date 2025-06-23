@@ -156,7 +156,7 @@ Resources:
         GetAlarmsAPI:
           Type: Api
           Properties:
-            Path: /getAlarms
+            Path: /getAlarm
             Method: get
             RestApiId:
               Ref: ApiGatewayApi
