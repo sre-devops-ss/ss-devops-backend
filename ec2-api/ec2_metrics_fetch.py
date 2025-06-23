@@ -18,7 +18,6 @@ def lambda_handler(event, context):
         account_id = params['account_id']
         instance_id = params['instance_id']
         metric_name = params['metric_name']
-        metric_name = params['metric_name']
         namespace = params.get('namespace', 'CWAgent')
         stat=params.get('stat','Average')
         period=params.get('period',60)
@@ -35,7 +34,7 @@ def lambda_handler(event, context):
             return {
                 'statusCode': 404,
                 'body': json.dumps({
-                   'message': 'Alarm not found'
+                   'message': 'Metric not found'
                 }, default=str)
             }
             
