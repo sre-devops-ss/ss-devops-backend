@@ -20,7 +20,7 @@ def lambda_handler(event, context):
         metric_name = params['metric_name']
         namespace = params.get('namespace', 'AWS/EC2') 
         stat=params.get('stat','Average')
-        period=params.get('period',60)
+        period=int(params.get('period',60))
         start_time = params.get('start_time') 
         end_time = params.get('end_time') 
         next_token = params.get('next_token')
