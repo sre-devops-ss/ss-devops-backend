@@ -95,7 +95,7 @@ class CloudWatchMonitor:
                 if instance_id:
                     metrics_data = self.get_metrics(
                         instance_id=instance_id,
-                        metric_names=[alarm_metric_name],
+                        alarm_metric_names=[alarm_metric_name],
                         namespace=alarm['Namespace'],
                         stat=alarm.get('Statistic', 'Average'),
                         period=alarm.get('Period', 60),
