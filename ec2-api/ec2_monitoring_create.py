@@ -401,7 +401,7 @@ def lambda_handler(event, context):
             }
         
         # Set up monitoring for the instances
-        success = setup_ec2_monitoring(cross_account_client, instances,config,region)
+        success = setup_ec2_monitoring(cross_account_client, instances,config)
         
         if success:
             return {
