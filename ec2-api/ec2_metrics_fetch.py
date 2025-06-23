@@ -1,8 +1,7 @@
 import json
-import boto3
+
 import os
-from datetime import datetime, timedelta
-from utils.cross_account import CrossAccountClient
+from datetime import datetime
 from utils.cloudwatch_client import CloudWatchMonitor
 def parse_time(ts, fallback):
     try:

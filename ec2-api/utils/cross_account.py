@@ -2,7 +2,6 @@ import boto3
 import json
 from botocore.exceptions import ClientError
 import logging
-
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -65,38 +64,3 @@ def get_account_id_from_role_arn(role_arn):
         return role_arn.split(':')[4]
     except:
         return None
-
-def format_metric_data(metric_data, account_id, region):
-    """Format metric data for Cassandra storage"""
-    formatted_data = []
-    for datapoint in metric_data:
-        formatted_data.append({
-            'account_id': account_id,
-            'region': region,
-            'timestamp': datapoint['Timestamp'].isoformat(),
-            'value': datapoint['Value'],
-            'unit': datapoint['Unit'],
-            'statistic': datapoint['Statistic']
-        })
-    return formatted_data
-
-def format_alarm_data(alarm_data, account_id, region):
-    """Format alarm data for Cassandra storage"""
-    formatted_data = []
-    for alarm in alarm_data:
-        formatted_data.append({
-            'account_id': account_id,
-            'region': region,
-            'alarm_name': alarm['AlarmName'],
-            'alarm_arn': alarm['AlarmARN'],
-            'metric_name': alarm['MetricName'],
-            'namespace': alarm['Namespace'],
-            'dimensions': json.dumps(alarm['Dimensions']),
-            'threshold': alarm['Threshold'],
-            'comparison_operator': alarm['ComparisonOperator'],
-            'evaluation_periods': alarm['EvaluationPeriods'],
-            'period': alarm['Period'],
-            'state_value': alarm['StateValue'],
-            'state_updated_timestamp': alarm['StateUpdatedTimestamp'].isoformat()
-        })
-    return formatted_data 
