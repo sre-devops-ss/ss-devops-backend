@@ -2,7 +2,7 @@
 import json
 import os
 from datetime import datetime, timedelta
-from cross_account import CrossAccountClient
+from utils.cross_account import CrossAccountClient
 
 class CloudWatchMonitor:
     def __init__(self, account_id, region, role_name):
