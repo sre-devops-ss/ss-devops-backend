@@ -37,6 +37,7 @@ Parameters:
   CrossAccRoleArn:
     Type: AWS::SSM::Parameter::Value<String>
     Default: '/ss/backend/cross-account-role-arn'
+  
 
 Globals:
   Function:
@@ -65,7 +66,7 @@ Resources:
       Name: "s3-api"
       StageName: !Ref Environment
 
-  EC2CreateMonitoringFunction:
+  S3CreateMonitoringFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../s3-api
@@ -85,7 +86,7 @@ Resources:
         InstallAPI:
           Type: Api
           Properties:
-            Path: /install
+            Path: alarm/create/all
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
@@ -93,7 +94,34 @@ Resources:
         Variables:
           ROLE_NAME: !Ref CrossAccRoleName
           REGION: !Ref "AWS::Region"
-  
+  S3DeleteMonitoringFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../s3-api
+      FunctionName: Devops-s3_delete_notification
+      Handler: s3_delete_notification.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - ec2:DescribeInstances
+                - ssm:*
+                - sns:Publish
+              Resource: "*"
+      Events:
+        InstallAPI:
+          Type: Api
+          Properties:
+            Path: /notification/deleteObject
+            Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
   ApiGatewayId:
     Type: AWS::SSM::Parameter
     DependsOn: ApiGatewayApi

@@ -233,35 +233,13 @@ def attach_monitoring_role(instance_id,cross_account_client,region=None,):
 
 
 
-def setup_ec2_monitoring(cross_account_client, instances, config=None,sns_topic_arn=None,region=None, ):
-    """
-    Set up monitoring for EC2 instances using cross-account authentication
-    
-    Args:
-        cross_account_client (CrossAccountClient): Authenticated client for cross-account operations
-        instances (list): List of EC2 instances to monitor
-        config (dict): Optional configuration overrides
-        :param sns_topic_arn: 
-    """
+def setup_ec2_monitoring(cross_account_client, instances, config=None ):
     try:
-        # Default monitoring configuration
-        default_config = {
-            'cpu_threshold': 80,
-            'memory_threshold': 85,
-            'disk_threshold': 85,
-            'evaluation_periods': 2,
-            'period': 300,
-            'alarm_actions': [sns_topic_arn]
-        }
-        
-        # Merge with user config
-        monitoring_config = {**default_config, **(config or {})}
-        
         # Get CloudWatch client using cross-account authentication
         cloudwatch = cross_account_client.get_client('cloudwatch')
         
         # Store monitoring config
-        cross_account_client.store_monitoring_config('ec2', monitoring_config)
+        cross_account_client.store_monitoring_config('ec2', config)
         
         for instance in instances:
             instance_id = instance['InstanceId']
@@ -279,11 +257,11 @@ def setup_ec2_monitoring(cross_account_client, instances, config=None,sns_topic_
                 Namespace='AWS/EC2',
                 Statistic='Average',
                 Dimensions=[{'Name': 'InstanceId', 'Value': instance_id}],
-                Period=monitoring_config['period'],
-                EvaluationPeriods=monitoring_config['evaluation_periods'],
-                Threshold=monitoring_config['cpu_threshold'],
+                Period=config['period'],
+                EvaluationPeriods=config['evaluation_periods'],
+                Threshold=config['cpu_threshold'],
                 ComparisonOperator='GreaterThanThreshold',
-                AlarmActions=monitoring_config['alarm_actions']
+                AlarmActions=config['alarm_actions']
             )
             
             # Create Memory Utilization alarm (requires CloudWatch agent)
@@ -298,11 +276,11 @@ def setup_ec2_monitoring(cross_account_client, instances, config=None,sns_topic_
                     {'Name': 'InstanceId', 'Value': instance_id},
                     {'Name': 'InstanceType', 'Value': instance['InstanceType']}
                 ],
-                Period=monitoring_config['period'],
-                EvaluationPeriods=monitoring_config['evaluation_periods'],
-                Threshold=monitoring_config['memory_threshold'],
+                Period=config['period'],
+                EvaluationPeriods=config['evaluation_periods'],
+                Threshold=config['memory_threshold'],
                 ComparisonOperator='GreaterThanThreshold',
-                AlarmActions=monitoring_config['alarm_actions']
+                AlarmActions=config['alarm_actions']
             )
             
             # Create Disk Utilization alarm (requires CloudWatch agent)
@@ -318,11 +296,11 @@ def setup_ec2_monitoring(cross_account_client, instances, config=None,sns_topic_
                     {'Name': 'InstanceType', 'Value': instance['InstanceType']},
                     {'Name': 'Filesystem', 'Value': '/dev/xvda1'}
                 ],
-                Period=monitoring_config['period'],
-                EvaluationPeriods=monitoring_config['evaluation_periods'],
-                Threshold=monitoring_config['disk_threshold'],
+                Period=config['period'],
+                EvaluationPeriods=config['evaluation_periods'],
+                Threshold=config['disk_threshold'],
                 ComparisonOperator='GreaterThanThreshold',
-                AlarmActions=monitoring_config['alarm_actions']
+                AlarmActions=config['alarm_actions']
             )
             
             logger.info(f"Successfully set up monitoring for instance {instance_id}")
@@ -332,19 +310,50 @@ def setup_ec2_monitoring(cross_account_client, instances, config=None,sns_topic_
     except Exception as e:
         logger.error(f"Error setting up EC2 monitoring: {str(e)}")
         return False
+def get_config(config, ssm_client, sns_topic_arn_parameter_name):
+    default_config = {
+        'cpu_threshold': 80,
+        'memory_threshold': 85,
+        'disk_threshold': 85,
+        'evaluation_periods': 2,
+        'period': 300,
+        'alarm_actions': []
+    }
 
+    # Fetch SNS topic ARN from SSM
+    sns_response = ssm_client.get_parameter(
+        Name=sns_topic_arn_parameter_name,
+        WithDecryption=False
+    )
+    sns_topic_arn = sns_response['Parameter']['Value']
+
+    # Merge default config with user config
+    config = config or {}
+    monitoring_config = {**default_config, **config}
+
+    # Ensure alarm_actions is a list and includes the SNS topic ARN
+    alarm_actions = monitoring_config.get('alarm_actions', [])
+    if not isinstance(alarm_actions, list):
+        alarm_actions = [alarm_actions]
+
+    if sns_topic_arn not in alarm_actions:
+        alarm_actions.append(sns_topic_arn)
+
+    monitoring_config['alarm_actions'] = alarm_actions
+    return monitoring_config
+    
 def lambda_handler(event, context):
     try:
         # Get parameters from the event
         body = json.loads(event.get('body', '{}'))
         ROLE_NAME = os.environ.get('ROLE_NAME')
         REGION = os.environ.get('REGION')
-        sns_topic_arn_parameter_name = "/devops-backend/snstopic/arn"
         account_id = body.get('account_id')
         role_arn = f"arn:aws:iam::{account_id}:role/{ROLE_NAME}"
         region = body.get('region') or REGION 
-        config = body.get('config')
-    
+        config = body.get('config') or {}
+        sns_topic_arn_parameter_name = "/devops-backend/snstopic/arn"
+        
         if not all([account_id, ROLE_NAME]):
             return {
                 'statusCode': 400,
@@ -363,14 +372,13 @@ def lambda_handler(event, context):
             }
         
         # Get EC2 client
+        
         ec2_client = cross_account_client.get_client('ec2')
         ssm_client = cross_account_client.get_client('ssm')
+        sns_topic_arn_parameter_name = "/devops-backend/snstopic/arn"
+        
+        config=get_config(config,ssm_client,sns_topic_arn_parameter_name)
 
-        sns_responce = ssm_client.get_parameter(
-                    Name=sns_topic_arn_parameter_name,
-                    WithDecryption=False )
-
-        sns_topic_arn = sns_responce['Parameter']['Value']
         
         
         instance_ids = body.get('instance_ids', [])
@@ -379,8 +387,6 @@ def lambda_handler(event, context):
                 'statusCode': 400,
                 'body': json.dumps({'error': 'instance_ids is required'})
             }
-        
-        # Get EC2 instance details
         try:
             response = ec2_client.describe_instances(
                 InstanceIds=instance_ids
@@ -395,7 +401,7 @@ def lambda_handler(event, context):
             }
         
         # Set up monitoring for the instances
-        success = setup_ec2_monitoring(cross_account_client, instances,config,sns_topic_arn,region)
+        success = setup_ec2_monitoring(cross_account_client, instances,config,region)
         
         if success:
             return {

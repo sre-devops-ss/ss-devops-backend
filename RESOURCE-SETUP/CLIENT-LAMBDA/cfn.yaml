@@ -203,6 +203,13 @@ Resources:
     Properties:
       TopicName: !Ref SnsTopicName
   
+  AlertTopicNameParameterStore:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/devops-backend/snstopic/name"   #change
+      Type: String
+      Value: !Ref SnsTopicName
+  
   AlertTopicParameterStore:
     Type: AWS::SSM::Parameter
     DependsOn: AlertSNSTopic

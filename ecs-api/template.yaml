@@ -65,7 +65,7 @@ Resources:
       Name: "ecs-api"
       StageName: !Ref Environment
 
-  EC2CreateMonitoringFunction:
+  ECSCreateMonitoringFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../ecs-api

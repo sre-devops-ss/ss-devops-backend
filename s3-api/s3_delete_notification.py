@@ -60,10 +60,11 @@ def lambda_handler(event, context):
         body = json.loads(event.get("body", "{}"))
         bucket_name = body.get("bucket_name")
         account_id = body.get("account_id")
-        region = body.get("region", "us-east-1")
-        sns_topic_arn = body.get("sns_topic_arn")
-        sns_topic_name = body.get("sns_topic_name")
+        region = body.get("region") or os.environ.get("REGION")
 
+        sns_topic_arn_parameter_arn = "/devops-backend/snstopic/arn"
+        sns_topic_name_parameter_name = "/devops-backend/snstopic/name"
+            
         if not bucket_name or not account_id:
             return {
                 'statusCode': 400,
@@ -75,8 +76,22 @@ def lambda_handler(event, context):
 
         client = CrossAccountClient(account_id, role_arn, region)
         client.assume_role()
+        
+        ssm_client = client.get_client("ssm")
+        sns_arn_responce = ssm_client.get_parameter(
+            Name=sns_topic_arn_parameter_arn,
+            WithDecryption=False )
+
+        sns_topic_arn =  body.get("sns_topic_arn") or sns_arn_responce['Parameter']['Value']
+
+        sns_name_responce = ssm_client.get_parameter(
+            Name=sns_topic_name_parameter_name,
+            WithDecryption=False )
+
+        sns_topic_name = body.get("sns_topic_name") or sns_name_responce['Parameter']['Value']
 
         notifier = S3DeleteNotifier(client)
+        
         return notifier.add_delete_notification(bucket_name, sns_topic_arn, sns_topic_name)
 
     except Exception as e:

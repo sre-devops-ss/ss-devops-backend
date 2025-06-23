@@ -57,7 +57,7 @@ def lambda_handler(event, context):
         body = json.loads(event.get("body", "{}"))
         bucket_name = body.get("bucket_name")
         account_id = body.get("account_id")
-        region = body.get("region", "us-east-1")
+        region = body.get("region") or os.environ.get("REGION")
         config = body.get("config", {})
 
         if not bucket_name or not account_id:

@@ -16,14 +16,7 @@ class ECSAlarmCreator:
     def create_alarms(self, cluster_name, service_name, service_details, config=None):
         """Create CloudWatch alarms for ECS service metrics"""
         try:
-            monitoring_config = {
-                'cpu_threshold': 80,
-                'memory_threshold': 85,
-                'evaluation_periods': 2,
-                'period': 300,
-                'alarm_actions': [],
-                **(config or {})
-            }
+            monitoring_config =config or {}
 
             dimensions = [
                 {'Name': 'ClusterName', 'Value': cluster_name},
@@ -77,7 +70,40 @@ class ECSAlarmCreator:
 
         except Exception as e:
             logger.error(f"Failed to create alarms: {str(e)}")
+    
             return False
+
+
+def get_config(config, ssm_client, sns_topic_arn_parameter_name):
+    default_config = {
+        'cpu_threshold': 80,
+        'memory_threshold': 85,
+        'evaluation_periods': 2,
+        'period': 300,
+        'alarm_actions': []
+    }
+
+    # Fetch SNS topic ARN from SSM
+    sns_response = ssm_client.get_parameter(
+        Name=sns_topic_arn_parameter_name,
+        WithDecryption=False
+    )
+    sns_topic_arn = sns_response['Parameter']['Value']
+
+    # Merge default config with user config
+    config = config or {}
+    monitoring_config = {**default_config, **config}
+
+    # Ensure alarm_actions is a list and includes the SNS topic ARN
+    alarm_actions = monitoring_config.get('alarm_actions', [])
+    if not isinstance(alarm_actions, list):
+        alarm_actions = [alarm_actions]
+
+    if sns_topic_arn not in alarm_actions:
+        alarm_actions.append(sns_topic_arn)
+
+    monitoring_config['alarm_actions'] = alarm_actions
+    return monitoring_config
 
 
 def lambda_handler(event, context):
@@ -86,7 +112,7 @@ def lambda_handler(event, context):
         cluster_name = body.get('cluster_name')
         service_name = body.get('service_name')
         account_id = body.get('account_id')
-        region = body.get('region', 'us-east-1')
+        region = body.get('region') or os.environ.get('REGION')
         config = body.get('config', {})
 
         role_name = os.environ.get("ROLE_NAME")
@@ -101,6 +127,10 @@ def lambda_handler(event, context):
         client.assume_role()
 
         ecs = client.get_client("ecs")
+        ssm = client.get_client("ssm")
+        sns_topic_arn_parameter_name = "/devops-backend/snstopic/arn"
+
+        config=get_config(config,ssm,sns_topic_arn_parameter_name)
         response = ecs.describe_services(cluster=cluster_name, services=[service_name])
         service_details = response['services'][0]
 
