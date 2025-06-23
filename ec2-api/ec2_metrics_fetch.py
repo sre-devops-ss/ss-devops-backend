@@ -28,7 +28,7 @@ def lambda_handler(event, context):
         monitor = CloudWatchMonitor(account_id, region, role_name)
 
         result = monitor.get_metrics(instance_id, metric_name, namespace, stat,
-                                     period, start_time=None, end_time=None, next_token=None)
+                                     period, start_time, end_time, next_token)
         created = False
         if not result:
             return {
