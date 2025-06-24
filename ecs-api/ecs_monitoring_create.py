@@ -125,7 +125,6 @@ def lambda_handler(event, context):
         role_arn = f"arn:aws:iam::{account_id}:role/{role_name}"
         client = CrossAccountClient(account_id, role_arn, region)
         client.assume_role()
-
         ecs = client.get_client("ecs")
         ssm = client.get_client("ssm")
         sns_topic_arn_parameter_name = "/devops-backend/snstopic/arn"
