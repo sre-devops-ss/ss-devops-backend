@@ -1,0 +1,75 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Unified API",
+    "version": "1.0.0",
+    "description": "Combined API for EC2, Auth, ECS, and S3 services."
+  },
+  "paths": {
+    "/install": {
+      "post": {
+        "summary": "Create EC2 or ECS Monitoring",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
+        "responses": {"200": {"description": "Monitoring enabled"}}
+      }
+    },
+    "/getMetrics": {
+      "get": {"summary": "Fetch EC2 Metrics", "responses": {"200": {"description": "Metrics fetched"}}},
+      "post": {"summary": "Fetch EC2 Metrics (POST)", "responses": {"200": {"description": "Metrics fetched"}}}
+    },
+    "/getAlarm": {
+      "get": {"summary": "Fetch EC2 Alarms", "responses": {"200": {"description": "Alarms fetched"}}}
+    },
+    "/getAlarms": {
+      "post": {"summary": "Fetch EC2 Alarms (POST)", "responses": {"200": {"description": "Alarms fetched"}}}
+    },
+    "/updateMetricsToDb": {
+      "post": {"summary": "Update Metrics to DB", "responses": {"200": {"description": "Metrics stored"}}}
+    },
+    "/updateAlarmToDb": {
+      "post": {"summary": "Update Alarms to DB", "responses": {"200": {"description": "Alarms stored"}}}
+    },
+    "/create": {
+      "post": {
+        "summary": "Create User (Auth API)",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
+        "responses": {"200": {"description": "User created"}}
+      }
+    },
+    "/login": {
+      "post": {
+        "summary": "Login User (Auth API)",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
+        "responses": {"200": {"description": "Login success"}}
+      }
+    },
+    "/addgroup": {
+      "post": {
+        "summary": "Add User to Group (Auth API)",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
+        "responses": {"200": {"description": "User added to group"}}
+      }
+    },
+    "/accessId": {
+      "post": {
+        "summary": "Get Access ID (Auth API)",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
+        "responses": {"200": {"description": "Access ID returned"}}
+      }
+    },
+    "alarm/create/all": {
+      "post": {
+        "summary": "Create S3 Monitoring Alarm",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
+        "responses": {"200": {"description": "S3 monitoring alarm created"}}
+      }
+    },
+    "/notification/deleteObject": {
+      "post": {
+        "summary": "Delete S3 Notification",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
+        "responses": {"200": {"description": "S3 delete notification processed"}}
+      }
+    }
+  }
+} 

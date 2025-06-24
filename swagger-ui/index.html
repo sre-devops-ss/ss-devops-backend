@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Unified API Documentation</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+  <style>
+    body { margin: 0; background: #f8f8f8; }
+    #swagger-ui { margin: 0 auto; max-width: 1200px; }
+    .topbar { display: none; }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center;margin-top:20px;">Unified API Documentation</h2>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+  <script>
+    window.onload = function() {
+      SwaggerUIBundle({
+        spec: __SWAGGER_JSON__,
+        dom_id: '#swagger-ui',
+        presets: [SwaggerUIBundle.presets.apis],
+        layout: "BaseLayout"
+      });
+    };
+  </script>
+
+  <div style="text-align:center;margin:30px 0;color:#888;">
+    <p>To update the API docs, replace <code>swagger.json</code> in the root folder.</p>
+  </div>
+</body>
+</html> 

@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Swagger UI server via Lambda using REST API Gateway
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+
+Globals:
+  Function:
+    Runtime: python3.10
+    Timeout: 60
+    MemorySize: 128
+
+Resources:
+
+  # API Gateway (REST)
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "swagger-api"
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+        AllowCredentials: "'*'"
+
+  # Lambda Function to serve index.html + embedded swagger.json
+  SwaggerUIFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub swagger-ui-handler-${Environment}
+      CodeUri: ../swagger-ui/         # Folder containing index.html, swagger.json, lambda_function.py
+      Handler: lambda_function.lambda_handler
+      Events:
+        SwaggerAPI:
+          Type: Api
+          Properties:
+            Path: /swagger
+            Method: GET
+            RestApiId: !Ref ApiGatewayApi
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+
+  ApiGatewayId:
+    Type: AWS::SSM::Parameter
+    DependsOn: ApiGatewayApi
+    Properties:
+      Name: !Sub "/swagger-ui/api/${Environment}/id"
+      Type: String
+      Value: !Ref ApiGatewayApi
