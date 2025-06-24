@@ -352,7 +352,6 @@ def lambda_handler(event, context):
         role_arn = f"arn:aws:iam::{account_id}:role/{ROLE_NAME}"
         region = body.get('region') or REGION 
         config = body.get('config') or {}
-        sns_topic_arn_parameter_name = "/devops-backend/snstopic/arn"
         
         if not all([account_id, ROLE_NAME]):
             return {

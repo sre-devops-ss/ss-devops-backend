@@ -55,7 +55,8 @@
           "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess",
           "arn:aws:iam::aws:policy/AmazonRDSFullAccess",
           "arn:aws:iam::aws:policy/AmazonEC2FullAccess",
-          "arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess"
+          "arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess",
+          "arn:aws:iam::aws:policy/AmazonECSFullAccess"
         ],
         "Policies": [
           {
