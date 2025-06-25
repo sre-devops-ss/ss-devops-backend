@@ -1,13 +1,14 @@
 import json
+import yaml
 
 def lambda_handler(event, context):
     with open("index.html", "r") as f:
         html = f.read()
 
-    with open("swagger.json", "r") as f:
-        swagger_data = json.load(f)
+    with open("openapi.yaml", "r") as f:
+        openapi_data = yaml.safe_load(f)
 
-    rendered_html = html.replace("__SWAGGER_JSON__", json.dumps(swagger_data))
+    rendered_html = html.replace("__SWAGGER_JSON__", json.dumps(openapi_data))
 
     return {
         "statusCode": 200,
