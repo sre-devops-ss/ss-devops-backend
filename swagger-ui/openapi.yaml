@@ -25,7 +25,12 @@ externalDocs:
 servers:
   - url: https://awsmonitor.supportsages.com
     description: Production API Gateway
-
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 # Tags for grouping
 # ---
 tags:
@@ -44,7 +49,7 @@ paths:
   # --- EC2 ---
   /api/ec2/install:
     post:
-      tags: 
+      tags:
         - ec2-api
       summary: Create EC2 or ECS Monitoring
       description: |
@@ -57,24 +62,24 @@ paths:
             schema:
               type: object
               properties:
-                  account_id:
-                    type: string
-                    example: "123456789012"
-                  region: 
-                    type: string
-                    example: "us-east-1"
-                  instance_ids:
-                    type: string
-                    example: ["i-1234567890abcdef0", "i-0987654321fedcba0"]
-                  config:
-                    type: object
-                    example: 
-                      cpu_threshold: 80
-                      memory_threshold: 85
-                      disk_threshold: 85
-                      evaluation_periods: 2
-                      period: 300
-                      alarm_actions: ["arn:aws:sns:us-east-1:123456789012:alerts-topic"]
+                account_id:
+                  type: string
+                  example: "123456789012"
+                region:
+                  type: string
+                  example: "us-east-1"
+                instance_ids:
+                  type: string
+                  example: ["i-1234567890abcdef0", "i-0987654321fedcba0"]
+                config:
+                  type: object
+                  example:
+                    cpu_threshold: 80
+                    memory_threshold: 85
+                    disk_threshold: 85
+                    evaluation_periods: 2
+                    period: 300
+                    alarm_actions: ["arn:aws:sns:us-east-1:123456789012:alerts-topic"]
       responses:
         '200':
           description: Monitoring enabled
@@ -83,10 +88,10 @@ paths:
               schema:
                 type: object
                 properties:
-                  message: 
+                  message:
                     type: string
                     example: "EC2 monitoring enabled successfully"
-                  instances: 
+                  instances:
                     type: string
                     example: ["i-1234567890abcdef0", "i-0987654321fedcba0"]
 
@@ -223,7 +228,7 @@ paths:
           schema:
             type: string
           description: Token for retrieving the next page of results.
-     
+      
       responses:
         '200':
           description: RDS instances fetched successfully
@@ -430,6 +435,9 @@ paths:
       summary: Create User
       description: Creates a new user in Cognito.
       operationId: createUser
+      security:
+        - bearerAuth: []
+
       requestBody:
         required: true
         content:
@@ -465,6 +473,7 @@ paths:
                     example: "12345678-1234-1234-1234-123456789012"
         '400':
           description: Invalid input
+
 
   /api/user/group:
     post:
