@@ -193,59 +193,6 @@ paths:
                     type: string
                     example: "my-bucket"
 
-  /api/rds/install:
-    post:
-      tags:
-        - rds-api
-      summary: Create RDS Monitoring
-      description: |
-        Sets up monitoring for RDS instances by creating CloudWatch alarms.
-      operationId: installRdsMonitoring
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                account_id:
-                  type: string
-                  example: "123456789012"
-                region:
-                  type: string
-                  example: "us-east-1"
-                db_instance_identifiers:
-                  type: array
-                  items:
-                    type: string
-                  example: ["db-ABCDEFGH1234567"]
-                config:
-                  type: object
-                  example:
-                    cpu_threshold: 80
-                    memory_threshold: 85
-                    disk_threshold: 85
-                    evaluation_periods: 2
-                    period: 300
-                    alarm_actions: ["arn:aws:sns:us-east-1:123456789012:alerts-topic"]
-      responses:
-        '200':
-          description: RDS monitoring enabled
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "RDS monitoring enabled successfully"
-                  db_instances:
-                    type: array
-                    items:
-                      type: string
-                    example: ["db-ABCDEFGH1234567"]
-
-
 
   /api/rds/list:
     get:
@@ -343,10 +290,10 @@ paths:
                     description: Description of the error
                     example: "Failed to assume cross-account role"
 
-  /api/rds/create-cpu-alarm:
+  /api/rds/create/alarm/cpu:
     post:
       tags:
-        - rds
+        - rds-api
       summary: Create CPU Utilization Alarm for RDS Instance
       description: Creates a CloudWatch CPU utilization alarm for a specific RDS DB instance using cross-account access.
       operationId: createRdsCpuAlarm
@@ -439,7 +386,7 @@ paths:
   /api/user/login:
     post:
       tags:
-        - auth
+        - auth-api
       summary: User Login
       description: Authenticates a user and returns a JWT token.
       operationId: loginUser
@@ -479,7 +426,7 @@ paths:
   /api/user/create:
     post:
       tags:
-        - auth
+        - auth-api
       summary: Create User
       description: Creates a new user in Cognito.
       operationId: createUser
@@ -522,7 +469,7 @@ paths:
   /api/user/group:
     post:
       tags:
-        - auth
+        - auth-api
       summary: Create Group
       description: Creates a new user group in Cognito.
       operationId: createGroup
