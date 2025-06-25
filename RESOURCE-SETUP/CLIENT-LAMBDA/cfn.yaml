@@ -152,12 +152,20 @@ Resources:
     Properties:
       LayerName: devops-client-layer
       Content:
-        S3Bucket: ss-backend-config-ap-south-1-979453078508
+        S3Bucket: !Sub ss-backend-config-${AWS::Region}-${AWS::AccountId}
         S3Key: relay_layer.zip
       CompatibleRuntimes:
         - python3.10
       Description: layer for DevOps Backend Lambda
-
+      
+  DevopsClientLayer:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/client-layer-name'
+      Type: String
+      Value: !Ref DevopsBackendLayer
+      Description: 'client layer arn used by ss backend'
+      
   DevopsClientLambda:
     Type: 'AWS::Lambda::Function'
     Properties:
@@ -165,7 +173,7 @@ Resources:
       Handler: client-provider.lambda_handler
       Runtime: python3.10
       Code:
-        S3Bucket: ss-backend-config-ap-south-1-979453078508
+        S3Bucket: !Sub ss-backend-config-${AWS::Region}-${AWS::AccountId}
         S3Key: client_lambda.zip
       Role: !GetAtt LambdaExecutionRole.Arn
       Layers:
@@ -184,7 +192,7 @@ Resources:
       Handler: notification.lambda_handler
       Runtime: python3.10
       Code:
-        S3Bucket: ss-backend-config-ap-south-1-979453078508
+        S3Bucket: !Sub ss-backend-config-${AWS::Region}-${AWS::AccountId}
         S3Key: notification.zip
       Role: !GetAtt LambdaExecutionRole.Arn
       Layers:

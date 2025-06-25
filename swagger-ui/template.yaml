@@ -6,6 +6,9 @@ Parameters:
   Environment:
     Type: String
     Default: dev
+  LambdaLayer:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/ss/backend/client-layer-name"
 
 Globals:
   Function:
@@ -24,7 +27,7 @@ Resources:
         AllowHeaders: "'*'"
         AllowOrigin: "'*'"
         AllowCredentials: "'*'"
-
+  
   SwaggerUIFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -40,6 +43,7 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
       Policies:
         - AWSLambdaBasicExecutionRole
+      Layers: !Ref LambdaLayer
 
 
   ApiGatewayId:

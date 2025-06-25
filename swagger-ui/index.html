@@ -15,7 +15,7 @@
   <script>
     window.onload = () => {
       window.ui = SwaggerUIBundle({
-        url: "openapi.yaml", // Adjust path if needed
+        spec: window.OPENAPI_SPEC, // Use the injected variable
         dom_id: '#swagger-ui',
         deepLinking: true,
         presets: [
@@ -33,4 +33,4 @@
     };
   </script>
 </body>
-</html> 
+</html>
