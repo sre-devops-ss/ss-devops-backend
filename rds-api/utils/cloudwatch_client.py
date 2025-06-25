@@ -59,26 +59,7 @@ class CloudWatchMonitor:
             'next_token': response.get('NextToken')
         }
 
-    def create_alarm(self, alarm_name, metric_name,namespace,dimensions, threshold=80, evaluation_periods=2,
-                     period=60, stat='Average', comparison_operator='GreaterThanThreshold',
-                     alarm_actions=[]):
 
-         
-        self.cloudwatch.put_metric_alarm(
-            AlarmName=alarm_name,
-            MetricName=metric_name,
-            Namespace=namespace,
-            Statistic=stat,
-            Period=period,
-            EvaluationPeriods=evaluation_periods,
-            Threshold=threshold,
-            ComparisonOperator=comparison_operator,
-            AlarmActions=alarm_actions,
-            Dimensions=dimensions
-        )
-
-        response = self.cloudwatch.describe_alarms(AlarmNames=[alarm_name])
-        return response['MetricAlarms'][0]
 
     def get_alarm(self, alarm_name, start_time=None, end_time=None, next_token=None):
         try:

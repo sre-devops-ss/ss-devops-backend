@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: RDS API for managing and monitoring RDS
+
+Parameters:
+
+  Environment:
+    Type: String
+    Default: dev
+  CrossAccRoleName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: '/ss/backend/cross-account-role-name'
+  CrossAccRoleArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: '/ss/backend/cross-account-role-arn'
+
+    
+
+Globals:
+  Function:
+    Runtime: python3.10
+    Timeout: 300
+    MemorySize: 256
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+
+Resources:
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "rds-api"
+      StageName: !Ref Environment
+
+  RDSCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../rds-api
+      FunctionName: RDS-CreateResource
+      Handler: rds_create_alarm.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - rds:CreateDBInstance
+                - rds:DescribeDBInstances
+              Resource: "*"
+      Events:
+        CreateAPI:
+          Type: Api
+          Properties:
+            Path: /create/alarm
+            Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          REGION: !Ref "AWS::Region"
+          ROLE_NAME: !Ref CrossAccRoleName
+
+  RDSMetricsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../rds-api
+      FunctionName: RDS-FetchMetrics
+      Handler: getrds.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - rds:DescribeDBInstances
+                - cloudwatch:GetMetricData
+              Resource: "*"
+      Events:
+        GetMetricsAPI:
+          Type: Api
+          Properties:
+            Path: /list/rds
+            Method: get
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          REGION: !Ref "AWS::Region"
+          ROLE_NAME: !Ref CrossAccRoleName
+          
+
+  ApiGatewayId:
+    Type: AWS::SSM::Parameter
+    DependsOn: ApiGatewayApi
+    Properties:
+      Name: "/ss/backend/rds-api/id"
+      Type: String
+      Value: { Ref: ApiGatewayApi }

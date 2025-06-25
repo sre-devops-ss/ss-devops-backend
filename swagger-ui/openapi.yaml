@@ -196,7 +196,7 @@ paths:
   /api/rds/install:
     post:
       tags:
-        - rds
+        - rds-api
       summary: Create RDS Monitoring
       description: |
         Sets up monitoring for RDS instances by creating CloudWatch alarms.
@@ -244,6 +244,197 @@ paths:
                     items:
                       type: string
                     example: ["db-ABCDEFGH1234567"]
+
+
+
+  /api/rds/list:
+    get:
+      tags:
+        - rds-api
+      summary: Fetch RDS Instances Information
+      description: |
+        Fetches RDS instance data including standalone or cluster-based instances with pagination support.
+      operationId: getRdsInstances
+      parameters:
+        - name: account_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: AWS Account ID
+          example: "123456789012"
+        - name: region
+          in: query
+          required: false
+          schema:
+            type: string
+          description: AWS region (e.g., us-east-1). Defaults to the value of `REGION` environment variable.
+          example: "us-east-1"
+        - name: next_token
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Token for retrieving the next page of results.
+     
+      responses:
+        '200':
+          description: RDS instances fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rds_data:
+                    type: array
+                    description: List of RDS instances or clusters
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          description: Type of RDS resource (standalone or cluster)
+                          example: "cluster"
+                        cluster_id:
+                          type: string
+                          description: RDS cluster identifier
+                          example: "cluster-id-12345"
+                        instances:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                                description: Instance identifier
+                                example: "instance-id-12345"
+                              role:
+                                type: string
+                                description: The role of the instance (e.g., primary, replica). If not applicable, the value is 'UNKNOWN'.
+                                example: "Primary"
+                  next_token:
+                    type: string
+                    description: Token for the next page of results, if available.
+                    example: "abcdef12345=="
+        '400':
+          description: Bad Request - Missing required parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error type.
+                    example: "Missing required parameters"
+                  message:
+                    type: string
+                    description: Detailed error message.
+                    example: "account_id and ROLE_NAME are required"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Description of the error
+                    example: "Failed to assume cross-account role"
+
+  /api/rds/create-cpu-alarm:
+    post:
+      tags:
+        - rds
+      summary: Create CPU Utilization Alarm for RDS Instance
+      description: Creates a CloudWatch CPU utilization alarm for a specific RDS DB instance using cross-account access.
+      operationId: createRdsCpuAlarm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - account_id
+                - db_identifier
+              properties:
+                account_id:
+                  type: string
+                  example: "123456789012"
+                region:
+                  type: string
+                  example: "us-east-1"
+                role_name:
+                  type: string
+                  example: "CrossAccountMonitoringRole"
+                db_identifier:
+                  type: string
+                  example: "my-rds-instance"
+                external_id:
+                  type: string
+                  example: "external-access-id-abc"  # Optional
+                alarm_actions:
+                  type: array
+                  items:
+                    type: string
+                    example: "arn:aws:sns:us-east-1:123456789012:rds-alerts-topic"
+                cpu_threshold:
+                  type: integer
+                  example: 80
+                evaluation_periods:
+                  type: integer
+                  example: 2
+                period:
+                  type: integer
+                  example: 300
+      responses:
+        '200':
+          description: Alarm created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Alarm created successfully"
+                  alarm_name:
+                    type: string
+                    example: "my-rds-instance-CPUUtilization"
+                  db_identifier:
+                    type: string
+                    example: "my-rds-instance"
+                  account_id:
+                    type: string
+                    example: "123456789012"
+                  region:
+                    type: string
+                    example: "us-east-1"
+        '400':
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing required fields"
+                  message:
+                    type: string
+                    example: "account_id, role_name, and db_identifier are required"
+        '500':
+          description: Internal server error or failed cross-account role
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to assume cross-account role"
 
   /api/user/login:
     post:
