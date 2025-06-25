@@ -46,7 +46,6 @@ Resources:
       Layers: 
         - !Ref LambdaLayer
 
-
   ApiGatewayId:
     Type: AWS::SSM::Parameter
     DependsOn: ApiGatewayApi
