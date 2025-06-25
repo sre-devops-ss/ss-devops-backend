@@ -46,6 +46,6 @@ Resources:
     Type: AWS::SSM::Parameter
     DependsOn: ApiGatewayApi
     Properties:
-      Name: !Sub "/swagger-ui/api/id"
+      Name: !Sub "/devops-backend/swagger-ui/id"
       Type: String
       Value: !Ref ApiGatewayApi
