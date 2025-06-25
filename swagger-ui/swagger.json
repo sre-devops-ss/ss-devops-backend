@@ -1,74 +1,663 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Unified API",
+    "title": "Unified PolicyGuard API",
     "version": "1.0.0",
-    "description": "Combined API for EC2, Auth, ECS, and S3 services."
+    "description": "Unified API for EC2, Auth, ECS, S3, and RDS monitoring and management."
   },
   "paths": {
     "/install": {
       "post": {
         "summary": "Create EC2 or ECS Monitoring",
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
-        "responses": {"200": {"description": "Monitoring enabled"}}
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "account_id": {"type": "string"},
+                  "region": {"type": "string"},
+                  "instance_ids": {"type": "array", "items": {"type": "string"}},
+                  "cluster_name": {"type": "string"},
+                  "service_name": {"type": "string"},
+                  "config": {"type": "object"}
+                },
+                "required": ["account_id"]
+              },
+              "examples": {
+                "ec2": {
+                  "value": {
+                    "account_id": "123456789012",
+                    "region": "us-east-1",
+                    "instance_ids": ["i-1234567890abcdef0", "i-0987654321fedcba0"],
+                    "config": {
+                      "cpu_threshold": 80,
+                      "memory_threshold": 85,
+                      "disk_threshold": 85,
+                      "evaluation_periods": 2,
+                      "period": 300,
+                      "alarm_actions": ["arn:aws:sns:us-east-1:123456789012:alerts-topic"]
+                    }
+                  }
+                },
+                "ecs": {
+                  "value": {
+                    "account_id": "123456789012",
+                    "region": "us-east-1",
+                    "cluster_name": "my-cluster",
+                    "service_name": "my-service",
+                    "config": {
+                      "cpu_threshold": 80,
+                      "memory_threshold": 85,
+                      "evaluation_periods": 2,
+                      "period": 300,
+                      "alarm_actions": ["arn:aws:sns:us-east-1:123456789012:alerts-topic"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Monitoring enabled",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "examples": {
+                  "ec2": {
+                    "value": {
+                      "statusCode": 200,
+                      "body": {
+                        "message": "EC2 monitoring enabled successfully",
+                        "instances": ["i-1234567890abcdef0", "i-0987654321fedcba0"]
+                      }
+                    }
+                  },
+                  "ecs": {
+                    "value": {
+                      "statusCode": 200,
+                      "body": {
+                        "message": "ECS monitoring enabled successfully",
+                        "cluster_arn": "arn:aws:ecs:us-east-1:123456789012:cluster/my-cluster"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/getMetrics": {
-      "get": {"summary": "Fetch EC2 Metrics", "responses": {"200": {"description": "Metrics fetched"}}},
-      "post": {"summary": "Fetch EC2 Metrics (POST)", "responses": {"200": {"description": "Metrics fetched"}}}
+      "get": {
+        "summary": "Fetch EC2 Metrics",
+        "parameters": [
+          {"name": "instance_id", "in": "query", "required": true, "schema": {"type": "string"}},
+          {"name": "account_id", "in": "query", "schema": {"type": "string"}},
+          {"name": "role_name", "in": "query", "schema": {"type": "string"}},
+          {"name": "region", "in": "query", "schema": {"type": "string"}},
+          {"name": "start_time", "in": "query", "schema": {"type": "string"}},
+          {"name": "end_time", "in": "query", "schema": {"type": "string"}},
+          {"name": "period", "in": "query", "schema": {"type": "integer"}},
+          {"name": "metrics", "in": "query", "schema": {"type": "array", "items": {"type": "string"}}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Metrics fetched",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "instance_id": "i-1234567890abcdef0",
+                  "account_id": "123456789012",
+                  "region": "us-east-1",
+                  "start_time": "2024-01-15T00:00:00",
+                  "end_time": "2024-01-15T23:59:59",
+                  "period": 300,
+                  "metrics_count": 3,
+                  "metrics": {
+                    "CPUUtilization": {
+                      "namespace": "AWS/EC2",
+                      "unit": "Percent",
+                      "description": "CPU utilization percentage",
+                      "data_points": [
+                        {"timestamp": "2024-01-15T00:05:00", "average": 45.2, "minimum": 42.1, "maximum": 48.3}
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Fetch EC2 Metrics (POST)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type": "object"},
+              "example": {
+                "instance_id": "i-1234567890abcdef0",
+                "account_id": "123456789012",
+                "role_name": "EC2CrossAccountMetricsRole",
+                "region": "us-east-1",
+                "start_time": "2024-01-15T00:00:00",
+                "end_time": "2024-01-15T23:59:59",
+                "period": 300,
+                "metrics": ["CPUUtilization", "mem_used_percent"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Metrics fetched",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "instance_id": "i-1234567890abcdef0",
+                  "account_id": "123456789012",
+                  "region": "us-east-1",
+                  "start_time": "2024-01-15T00:00:00",
+                  "end_time": "2024-01-15T23:59:59",
+                  "period": 300,
+                  "metrics_count": 3,
+                  "metrics": {
+                    "CPUUtilization": {
+                      "namespace": "AWS/EC2",
+                      "unit": "Percent",
+                      "description": "CPU utilization percentage",
+                      "data_points": [
+                        {"timestamp": "2024-01-15T00:05:00", "average": 45.2, "minimum": 42.1, "maximum": 48.3}
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/getAlarm": {
-      "get": {"summary": "Fetch EC2 Alarms", "responses": {"200": {"description": "Alarms fetched"}}}
+      "get": {
+        "summary": "Fetch EC2 Alarms",
+        "parameters": [
+          {"name": "instance_id", "in": "query", "required": true, "schema": {"type": "string"}},
+          {"name": "account_id", "in": "query", "schema": {"type": "string"}},
+          {"name": "role_name", "in": "query", "schema": {"type": "string"}},
+          {"name": "region", "in": "query", "schema": {"type": "string"}},
+          {"name": "start_time", "in": "query", "schema": {"type": "string"}},
+          {"name": "end_time", "in": "query", "schema": {"type": "string"}},
+          {"name": "include_history", "in": "query", "schema": {"type": "boolean"}},
+          {"name": "alarm_names", "in": "query", "schema": {"type": "array", "items": {"type": "string"}}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Alarms fetched",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "instance_id": "i-1234567890abcdef0",
+                  "account_id": "123456789012",
+                  "region": "us-east-1",
+                  "alarms_count": 2,
+                  "alarms": [
+                    {
+                      "alarm_name": "my-instance-cpu-utilization",
+                      "alarm_arn": "arn:aws:cloudwatch:us-east-1:123456789012:alarm:my-instance-cpu-utilization",
+                      "alarm_description": "CPU utilization alarm for my-instance",
+                      "metric_name": "CPUUtilization",
+                      "namespace": "AWS/EC2",
+                      "dimensions": [
+                        {"Name": "InstanceId", "Value": "i-1234567890abcdef0"}
+                      ],
+                      "threshold": 80.0,
+                      "comparison_operator": "GreaterThanThreshold",
+                      "evaluation_periods": 2,
+                      "period": 300,
+                      "statistic": "Average",
+                      "state_value": "OK",
+                      "state_reason": "Threshold Crossed: 1 datapoint (45.2) was not greater than the threshold (80.0).",
+                      "state_updated_timestamp": "2024-01-15T12:00:00",
+                      "actions_enabled": true,
+                      "alarm_actions": [],
+                      "ok_actions": [],
+                      "insufficient_data_actions": [],
+                      "instance_details": {
+                        "instance_id": "i-1234567890abcdef0",
+                        "instance_type": "t3.micro",
+                        "state": "running",
+                        "launch_time": "2024-01-01T00:00:00",
+                        "tags": {
+                          "Name": "my-instance",
+                          "Environment": "production"
+                        }
+                      },
+                      "history": [
+                        {
+                          "timestamp": "2024-01-15T10:30:00",
+                          "history_item_type": "StateUpdate",
+                          "history_summary": "Alarm OK from ALARM",
+                          "history_data": "{\"version\":\"1.0\",\"queryDate\":\"2024-01-15T10:30:00Z\"}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/getAlarms": {
-      "post": {"summary": "Fetch EC2 Alarms (POST)", "responses": {"200": {"description": "Alarms fetched"}}}
+      "post": {
+        "summary": "Fetch EC2 Alarms (POST)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type": "object"},
+              "example": {
+                "instance_id": "i-1234567890abcdef0",
+                "account_id": "123456789012",
+                "role_name": "EC2CrossAccountMetricsRole",
+                "region": "us-east-1",
+                "include_history": true,
+                "start_time": "2024-01-15T00:00:00",
+                "end_time": "2024-01-15T23:59:59"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Alarms fetched",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "instance_id": "i-1234567890abcdef0",
+                  "account_id": "123456789012",
+                  "region": "us-east-1",
+                  "alarms_count": 2,
+                  "alarms": [
+                    {
+                      "alarm_name": "my-instance-cpu-utilization",
+                      "alarm_arn": "arn:aws:cloudwatch:us-east-1:123456789012:alarm:my-instance-cpu-utilization",
+                      "alarm_description": "CPU utilization alarm for my-instance",
+                      "metric_name": "CPUUtilization",
+                      "namespace": "AWS/EC2",
+                      "dimensions": [
+                        {"Name": "InstanceId", "Value": "i-1234567890abcdef0"}
+                      ],
+                      "threshold": 80.0,
+                      "comparison_operator": "GreaterThanThreshold",
+                      "evaluation_periods": 2,
+                      "period": 300,
+                      "statistic": "Average",
+                      "state_value": "OK",
+                      "state_reason": "Threshold Crossed: 1 datapoint (45.2) was not greater than the threshold (80.0).",
+                      "state_updated_timestamp": "2024-01-15T12:00:00",
+                      "actions_enabled": true,
+                      "alarm_actions": [],
+                      "ok_actions": [],
+                      "insufficient_data_actions": [],
+                      "instance_details": {
+                        "instance_id": "i-1234567890abcdef0",
+                        "instance_type": "t3.micro",
+                        "state": "running",
+                        "launch_time": "2024-01-01T00:00:00",
+                        "tags": {
+                          "Name": "my-instance",
+                          "Environment": "production"
+                        }
+                      },
+                      "history": [
+                        {
+                          "timestamp": "2024-01-15T10:30:00",
+                          "history_item_type": "StateUpdate",
+                          "history_summary": "Alarm OK from ALARM",
+                          "history_data": "{\"version\":\"1.0\",\"queryDate\":\"2024-01-15T10:30:00Z\"}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/updateMetricsToDb": {
-      "post": {"summary": "Update Metrics to DB", "responses": {"200": {"description": "Metrics stored"}}}
+      "post": {
+        "summary": "Update Metrics to DB",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type": "object"},
+              "example": {
+                "account_id": "123456789012",
+                "instance_id": "i-1234567890abcdef0",
+                "region": "us-east-1",
+                "start_time": "2024-01-01T00:00:00",
+                "end_time": "2024-01-01T23:59:59"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Metrics stored",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "statusCode": 200,
+                  "body": {
+                    "message": "Metrics stored successfully",
+                    "records": 144
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/updateAlarmToDb": {
-      "post": {"summary": "Update Alarms to DB", "responses": {"200": {"description": "Alarms stored"}}}
+      "post": {
+        "summary": "Update Alarms to DB",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type": "object"},
+              "example": {
+                "account_id": "123456789012",
+                "instance_id": "i-1234567890abcdef0",
+                "region": "us-east-1",
+                "start_time": "2024-01-01T00:00:00",
+                "end_time": "2024-01-01T23:59:59"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Alarms stored",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "statusCode": 200,
+                  "body": {
+                    "message": "Alarms stored successfully",
+                    "records": 5
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/create": {
       "post": {
         "summary": "Create User (Auth API)",
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
-        "responses": {"200": {"description": "User created"}}
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type": "object"},
+              "example": {
+                "username": "john.doe",
+                "email": "john@example.com",
+                "password": "SecretPass123!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User created",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "statusCode": 200,
+                  "body": {
+                    "message": "User created successfully",
+                    "user_id": "abc123"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/login": {
       "post": {
         "summary": "Login User (Auth API)",
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
-        "responses": {"200": {"description": "Login success"}}
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type": "object"},
+              "example": {
+                "username": "john.doe",
+                "password": "SecretPass123!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login success",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "statusCode": 200,
+                  "body": {
+                    "access_token": "eyJraWQiOiJ...",
+                    "refresh_token": "eyJjdHkiOiJ..."
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/addgroup": {
       "post": {
         "summary": "Add User to Group (Auth API)",
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
-        "responses": {"200": {"description": "User added to group"}}
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type": "object"},
+              "example": {
+                "username": "john.doe",
+                "group": "admin"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User added to group",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "statusCode": 200,
+                  "body": {
+                    "message": "User added to group"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/accessId": {
       "post": {
         "summary": "Get Access ID (Auth API)",
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
-        "responses": {"200": {"description": "Access ID returned"}}
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type": "object"},
+              "example": {
+                "refresh_token": "eyJjdHkiOiJ..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access ID returned",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "statusCode": 200,
+                  "body": {
+                    "access_id": "xyz789"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
-    "alarm/create/all": {
+    "/alarm/create/all": {
       "post": {
         "summary": "Create S3 Monitoring Alarm",
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
-        "responses": {"200": {"description": "S3 monitoring alarm created"}}
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type": "object"},
+              "example": {
+                "bucket_name": "my-bucket",
+                "account_id": "123456789012",
+                "config": { "object_count_threshold": 100000 }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "S3 monitoring alarm created",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "statusCode": 200,
+                  "body": {
+                    "message": "S3 monitoring alarm created successfully",
+                    "bucket_name": "my-bucket"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/notification/deleteObject": {
       "post": {
         "summary": "Delete S3 Notification",
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object"}}}},
-        "responses": {"200": {"description": "S3 delete notification processed"}}
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type": "object"},
+              "example": {
+                "bucket_name": "my-bucket",
+                "object_key": "path/to/object.txt"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "S3 delete notification processed",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "statusCode": 200,
+                  "body": {
+                    "message": "S3 delete notification processed",
+                    "object_key": "path/to/object.txt"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rds/createAlarm": {
+      "post": {
+        "summary": "Create RDS Monitoring Alarms",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type": "object"},
+              "example": {
+                "account_id": "123456789012",
+                "region": "us-east-1",
+                "role_name": "RDSCrossAccountMetricsRole",
+                "db_instance_id": "mydbinstance",
+                "alarm_actions": ["arn:aws:sns:us-east-1:123456789012:alerts-topic"],
+                "writer_only": false,
+                "thresholds": {
+                  "CPUUtilization": 80,
+                  "FreeableMemory": 1000000000
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "RDS alarms created",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"},
+                "example": {
+                  "statusCode": 200,
+                  "body": {
+                    "results": [
+                      {"alarm_name": "mydbinstance-cpuutilization", "status": "created"},
+                      {"alarm_name": "mydbinstance-freeablememory", "status": "created"}
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
