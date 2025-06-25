@@ -30,7 +30,7 @@ Resources:
     Properties:
       FunctionName: !Sub devops-swagger-ui-handler-${Environment}
       CodeUri: ../swagger-ui/         # Folder containing index.html, swagger.json, lambda_function.py
-      Handler: lambda_function.lambda_handler
+      Handler: swagger_ui.lambda_handler
       Events:
         SwaggerAPI:
           Type: Api
