@@ -43,7 +43,8 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
       Policies:
         - AWSLambdaBasicExecutionRole
-      Layers: !Ref LambdaLayer
+      Layers: 
+        - !Ref LambdaLayer
 
 
   ApiGatewayId:
