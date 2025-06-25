@@ -14,6 +14,8 @@ This document provides comprehensive documentation for the EC2 Monitoring API, w
 
 ## Overview
 
+
+
 The EC2 Monitoring API provides the following capabilities:
 
 - **Cross-Account Monitoring**: Monitor EC2 instances in different AWS accounts
