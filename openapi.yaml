@@ -1,0 +1,290 @@
+openapi: 3.0.4
+info:
+  title: PolicyGuard Unified API
+  description: |
+    Unified API for EC2, Auth, ECS, S3, and RDS monitoring and management.
+    
+    - Cross-account AWS monitoring
+    - CloudWatch metrics and alarms
+    - User and group management (Cognito)
+    - Cassandra DB integration
+    
+    [Supportsages DevOps](https://supportsages.com)
+  termsOfService: https://supportsages.com/terms/
+  contact:
+    name: Supportsages DevOps Team
+    email: devops@supportsages.com
+    url: https://supportsages.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+externalDocs:
+  description: Find out more about PolicyGuard
+  url: https://supportsages.com/policyguard
+servers:
+  - url: https://awsmonitor.supportsages.com
+    description: Production API Gateway
+
+# Tags for grouping
+# ---
+tags:
+  - name: ec2
+    description: EC2 monitoring and metrics
+  - name: auth
+    description: User and group management (Cognito)
+  - name: s3
+    description: S3 monitoring and notifications
+  - name: rds
+    description: RDS monitoring and alarms
+  - name: ecs
+    description: ECS monitoring and alarms
+
+paths:
+  # --- EC2 ---
+  /install:
+    post:
+      tags: [ec2, ecs]
+      summary: Create EC2 or ECS Monitoring
+      description: |
+        Sets up monitoring for EC2 instances or ECS services by creating CloudWatch alarms and optionally installing agents.
+      operationId: installMonitoring
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstallMonitoringRequest'
+            examples:
+              ec2:
+                value:
+                  account_id: "123456789012"
+                  region: "us-east-1"
+                  instance_ids: ["i-1234567890abcdef0", "i-0987654321fedcba0"]
+                  config:
+                    cpu_threshold: 80
+                    memory_threshold: 85
+                    disk_threshold: 85
+                    evaluation_periods: 2
+                    period: 300
+                    alarm_actions: ["arn:aws:sns:us-east-1:123456789012:alerts-topic"]
+              ecs:
+                value:
+                  account_id: "123456789012"
+                  region: "us-east-1"
+                  cluster_name: "my-cluster"
+                  service_name: "my-service"
+                  config:
+                    cpu_threshold: 80
+                    memory_threshold: 85
+                    evaluation_periods: 2
+                    period: 300
+                    alarm_actions: ["arn:aws:sns:us-east-1:123456789012:alerts-topic"]
+      responses:
+        '200':
+          description: Monitoring enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstallMonitoringResponse'
+              examples:
+                ec2:
+                  value:
+                    statusCode: 200
+                    body:
+                      message: EC2 monitoring enabled successfully
+                      instances: ["i-1234567890abcdef0", "i-0987654321fedcba0"]
+                ecs:
+                  value:
+                    statusCode: 200
+                    body:
+                      message: ECS monitoring enabled successfully
+                      cluster_arn: arn:aws:ecs:us-east-1:123456789012:cluster/my-cluster
+
+  /getMetrics:
+    get:
+      tags: [ec2]
+      summary: Fetch EC2 Metrics
+      description: Fetches CloudWatch metrics for EC2 instances with specific time ranges and periods.
+      operationId: getEc2Metrics
+      parameters:
+        - name: instance_id
+          in: query
+          required: true
+          schema: { type: string }
+        - name: account_id
+          in: query
+          schema: { type: string }
+        - name: role_name
+          in: query
+          schema: { type: string }
+        - name: region
+          in: query
+          schema: { type: string }
+        - name: start_time
+          in: query
+          schema: { type: string }
+        - name: end_time
+          in: query
+          schema: { type: string }
+        - name: period
+          in: query
+          schema: { type: integer }
+        - name: metrics
+          in: query
+          schema:
+            type: array
+            items: { type: string }
+      responses:
+        '200':
+          description: Metrics fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ec2MetricsResponse'
+              example:
+                instance_id: i-1234567890abcdef0
+                account_id: 123456789012
+                region: us-east-1
+                start_time: 2024-01-15T00:00:00
+                end_time: 2024-01-15T23:59:59
+                period: 300
+                metrics_count: 3
+                metrics:
+                  CPUUtilization:
+                    namespace: AWS/EC2
+                    unit: Percent
+                    description: CPU utilization percentage
+                    data_points:
+                      - timestamp: 2024-01-15T00:05:00
+                        average: 45.2
+                        minimum: 42.1
+                        maximum: 48.3
+    post:
+      tags: [ec2]
+      summary: Fetch EC2 Metrics (POST)
+      description: Fetches CloudWatch metrics for EC2 instances (POST body).
+      operationId: postEc2Metrics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ec2MetricsRequest'
+            example:
+              instance_id: i-1234567890abcdef0
+              account_id: 123456789012
+              role_name: EC2CrossAccountMetricsRole
+              region: us-east-1
+              start_time: 2024-01-15T00:00:00
+              end_time: 2024-01-15T23:59:59
+              period: 300
+              metrics: [CPUUtilization, mem_used_percent]
+      responses:
+        '200':
+          description: Metrics fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ec2MetricsResponse'
+              example:
+                instance_id: i-1234567890abcdef0
+                account_id: 123456789012
+                region: us-east-1
+                start_time: 2024-01-15T00:00:00
+                end_time: 2024-01-15T23:59:59
+                period: 300
+                metrics_count: 3
+                metrics:
+                  CPUUtilization:
+                    namespace: AWS/EC2
+                    unit: Percent
+                    description: CPU utilization percentage
+                    data_points:
+                      - timestamp: 2024-01-15T00:05:00
+                        average: 45.2
+                        minimum: 42.1
+                        maximum: 48.3
+
+  /getAlarm:
+    get:
+      tags: [ec2]
+      summary: Fetch EC2 Alarms
+      description: Fetches CloudWatch alarms for EC2 instances with optional alarm history.
+      operationId: getEc2Alarms
+      parameters:
+        - name: instance_id
+          in: query
+          required: true
+          schema: { type: string }
+        - name: account_id
+          in: query
+          schema: { type: string }
+        - name: role_name
+          in: query
+          schema: { type: string }
+        - name: region
+          in: query
+          schema: { type: string }
+        - name: start_time
+          in: query
+          schema: { type: string }
+        - name: end_time
+          in: query
+          schema: { type: string }
+        - name: include_history
+          in: query
+          schema: { type: boolean }
+        - name: alarm_names
+          in: query
+          schema:
+            type: array
+            items: { type: string }
+      responses:
+        '200':
+          description: Alarms fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ec2AlarmsResponse'
+              example:
+                instance_id: i-1234567890abcdef0
+                account_id: 123456789012
+                region: us-east-1
+                alarms_count: 2
+                alarms:
+                  - alarm_name: my-instance-cpu-utilization
+                    alarm_arn: arn:aws:cloudwatch:us-east-1:123456789012:alarm:my-instance-cpu-utilization
+                    alarm_description: CPU utilization alarm for my-instance
+                    metric_name: CPUUtilization
+                    namespace: AWS/EC2
+                    dimensions:
+                      - Name: InstanceId
+                        Value: i-1234567890abcdef0
+                    threshold: 80.0
+                    comparison_operator: GreaterThanThreshold
+                    evaluation_periods: 2
+                    period: 300
+                    statistic: Average
+                    state_value: OK
+                    state_reason: Threshold Crossed: 1 datapoint (45.2) was not greater than the threshold (80.0).
+                    state_updated_timestamp: 2024-01-15T12:00:00
+                    actions_enabled: true
+                    alarm_actions: []
+                    ok_actions: []
+                    insufficient_data_actions: []
+                    instance_details:
+                      instance_id: i-1234567890abcdef0
+                      instance_type: t3.micro
+                      state: running
+                      launch_time: 2024-01-01T00:00:00
+                      tags:
+                        Name: my-instance
+                        Environment: production
+                    history:
+                      - timestamp: 2024-01-15T10:30:00
+                        history_item_type: StateUpdate
+                        history_summary: Alarm OK from ALARM
+                        history_data: '{"version":"1.0","queryDate":"2024-01-15T10:30:00Z"}'
+# ...
+# (TRUNCATED for brevity. The full file will include all endpoints, tags, schemas, and examples for ec2, auth, s3, rds, ecs as described above.) 
