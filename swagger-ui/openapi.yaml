@@ -29,15 +29,15 @@ servers:
 # Tags for grouping
 # ---
 tags:
-  - name: ec2
+  - name: ec2-api
     description: EC2 monitoring and metrics
-  - name: auth
+  - name: auth-api
     description: User and group management (Cognito)
-  - name: s3
+  - name: s3-api
     description: S3 monitoring and notifications
-  - name: rds
+  - name: rds-api
     description: RDS monitoring and alarms
-  - name: ecs
+  - name: ecs-api
     description: ECS monitoring and alarms
 
 paths:
@@ -45,7 +45,7 @@ paths:
   /api/ec2/install:
     post:
       tags: 
-        - ec2
+        - ec2-api
       summary: Create EC2 or ECS Monitoring
       description: |
         Sets up monitoring for EC2 instances or ECS services by creating CloudWatch alarms and optionally installing agents.
@@ -93,7 +93,7 @@ paths:
   /api/ecs/install:
     post:
       tags:
-        - ecs
+        - ecs-api
       summary: Create ECS Monitoring
       description: |
         Sets up monitoring for ECS services by creating CloudWatch alarms.
@@ -147,7 +147,7 @@ paths:
   /api/s3/notification:
     post:
       tags:
-        - s3
+        - s3-api
       summary: Create S3 Event Notification
       description: |
         Sets up S3 bucket event notifications (e.g., for object creation/deletion).
