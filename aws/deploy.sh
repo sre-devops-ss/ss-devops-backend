@@ -8,8 +8,10 @@ if [ $# -eq 0 ]; then
 fi
 
 for folder in "$@"; do
-  echo "Processing folder: $folder"
-
+  echo "Processing folder from script: $folder"
+  ls -la $folder
+  ls -la
+  pwd
   if [ -f "$folder/template.yaml" ]; then
     echo "Found template.yaml in $folder. Running SAM build and deploy..."
     TemplatePath="$folder/template.yaml"
