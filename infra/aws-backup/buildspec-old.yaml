@@ -1,0 +1,30 @@
+version: 0.2
+env:
+  variables:
+    DEPLOY_DIR: "/"
+    Branch: "dev"
+    Environment: "dev"
+  parameter-store:
+    Bucket: "/automation/sambuild/bucket"
+    
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.10
+  build:
+    commands:
+      - echo Checking for root-level folder changes...
+      - ls -la
+      - python3 --version
+      - |
+        git diff --name-only HEAD^
+        CHANGED_FOLDERS=$(git diff --name-only HEAD^ | awk -F/ '{print $1}' | sort -u)
+        echo "Changed root-level folders: $CHANGED_FOLDERS"
+        echo "Changed root-level folders: $CHANGED_FOLDERS" > changed_folders.txt
+        
+        chmod +x deploy.sh  
+        ./deploy.sh         
+      - echo "Completed processing changed folders."
+
+      
