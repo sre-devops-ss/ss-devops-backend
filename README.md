@@ -1,6 +1,6 @@
 # AWS Monitoring and Management APIs
 
-
+  [**Click here for API Documentation (require vpn)**](https://awsmonitor.supportsages.com/ui/swagger)
 
 This repository provides APIs for managing and monitoring AWS resources such as EC2, RDS, S3, and ECS. Each API is organized in its own folder with necessary configurations, functions, and deployment files.
 

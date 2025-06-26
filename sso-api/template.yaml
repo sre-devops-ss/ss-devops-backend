@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: IAM Role Creation API for Cross-Account Management
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+  CrossAccRoleName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: '/ss/backend/cross-account-role-name'
+
+Globals:
+  Function:
+    Runtime: python3.10
+    Timeout: 300
+    MemorySize: 256
+    Environment:
+      Variables:
+        ROLE_NAME: !Ref CrossAccRoleName
+        REGION: !Ref "AWS::Region"
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
+Resources:
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "ss-api"
+      StageName: !Ref Environment
+
+  IAMCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../sso-api
+      FunctionName: Devops-iam_create
+      Handler: iam_create.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - iam:CreateRole
+                - iam:AttachRolePolicy
+                - iam:PutRolePolicy
+                - iam:TagRole
+                - iam:PassRole
+              Resource: "*"
+      Events:
+        CreateIAMAPI:
+          Type: Api
+          Properties:
+            Path: /iam/create
+            Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+  ApiGatewayId:
+    Type: AWS::SSM::Parameter
+    DependsOn: ApiGatewayApi
+    Properties:
+      Name: "/devops-backend/sso-api/id"
+      Type: String
+      Value: { Ref: ApiGatewayApi } 

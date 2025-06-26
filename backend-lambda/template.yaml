@@ -14,6 +14,7 @@ Globals:
     MemorySize: 256
     Runtime: python3.11
     Architectures: [x86_64]
+    
 
 Resources:
   LambdaExecutionRole:

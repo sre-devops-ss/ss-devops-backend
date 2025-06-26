@@ -44,6 +44,8 @@ tags:
     description: RDS monitoring and alarms
   - name: ecs-api
     description: ECS monitoring and alarms
+  - name: iam-api
+    description: IAM role creation
 
 paths:
   # --- EC2 ---
@@ -511,3 +513,92 @@ paths:
                     example: "admin"
         '400':
           description: Invalid input
+  
+  /api/iam/create-role:
+  post:
+    tags:
+      - iam-api
+    summary: Create IAM Role
+    description: |
+      Creates an IAM role in a specified AWS account with a trust policy,
+      optional managed policies, and an inline policy to allow STS assume-role access to specified remote roles.
+    operationId: createIamRole
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              account_id:
+                type: string
+                example: "123456789012"
+              region:
+                type: string
+                example: "us-east-1"
+              role_name:
+                type: string
+                example: "cross-account-role"
+              trust_policy_document:
+                type: object
+                example:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Principal:
+                        AWS: "arn:aws:iam::222222222222:root"
+                      Action: "sts:AssumeRole"
+              policies:
+                type: array
+                description: Optional list of managed policy ARNs to attach.
+                items:
+                  type: string
+                example:
+                  - "arn:aws:iam::aws:policy/ReadOnlyAccess"
+              assume_remote_role_arns:
+                type: array
+                description: Optional list of role ARNs that this role should be able to assume via STS.
+                items:
+                  type: string
+                example:
+                  - "arn:aws:iam::333333333333:role/RemoteReadRole"
+    responses:
+      '200':
+        description: IAM role successfully created
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "IAM role created"
+                role_arn:
+                  type: string
+                  example: "arn:aws:iam::123456789012:role/cross-account-role"
+                attached_policies:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    - "arn:aws:iam::aws:policy/ReadOnlyAccess"
+      '400':
+        description: Missing or invalid input
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "account_id, role_name, and assume_role_policy_document are required"
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "IAM error: AccessDenied"
