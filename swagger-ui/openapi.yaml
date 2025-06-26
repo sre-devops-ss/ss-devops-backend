@@ -514,91 +514,169 @@ paths:
         '400':
           description: Invalid input
   
-  /api/iam/create-role:
-  post:
-    tags:
-      - iam-api
-    summary: Create IAM Role
-    description: |
-      Creates an IAM role in a specified AWS account with a trust policy,
-      optional managed policies, and an inline policy to allow STS assume-role access to specified remote roles.
-    operationId: createIamRole
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              account_id:
-                type: string
-                example: "123456789012"
-              region:
-                type: string
-                example: "us-east-1"
-              role_name:
-                type: string
-                example: "cross-account-role"
-              trust_policy_document:
-                type: object
-                example:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Principal:
-                        AWS: "arn:aws:iam::222222222222:root"
-                      Action: "sts:AssumeRole"
-              policies:
-                type: array
-                description: Optional list of managed policy ARNs to attach.
-                items:
-                  type: string
-                example:
-                  - "arn:aws:iam::aws:policy/ReadOnlyAccess"
-              assume_remote_role_arns:
-                type: array
-                description: Optional list of role ARNs that this role should be able to assume via STS.
-                items:
-                  type: string
-                example:
-                  - "arn:aws:iam::333333333333:role/RemoteReadRole"
-    responses:
-      '200':
-        description: IAM role successfully created
+  /api/sso/iam/create-role:
+    post:
+      tags:
+        - iam-api
+      summary: Create IAM Role
+      description: |
+        Creates an IAM role in a specified AWS account with a trust policy,
+        optional managed policies, and an inline policy to allow STS assume-role access to specified remote roles.
+      operationId: createIamRole
+      requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               properties:
-                message:
+                account_id:
                   type: string
-                  example: "IAM role created"
-                role_arn:
+                  example: "123456789012"
+                region:
                   type: string
-                  example: "arn:aws:iam::123456789012:role/cross-account-role"
-                attached_policies:
+                  example: "us-east-1"
+                role_name:
+                  type: string
+                  example: "cross-account-role"
+                trust_policy_document:
+                  type: object
+                  example:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Effect: "Allow"
+                        Principal:
+                          AWS: "arn:aws:iam::222222222222:root"
+                        Action: "sts:AssumeRole"
+                policies:
                   type: array
+                  description: Optional list of managed policy ARNs to attach.
                   items:
                     type: string
                   example:
                     - "arn:aws:iam::aws:policy/ReadOnlyAccess"
-      '400':
-        description: Missing or invalid input
+                assume_remote_role_arns:
+                  type: array
+                  description: Optional list of role ARNs that this role should be able to assume via STS.
+                  items:
+                    type: string
+                  example:
+                    - "arn:aws:iam::333333333333:role/RemoteReadRole"
+      responses:
+        '200':
+          description: IAM role successfully created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "IAM role created"
+                  role_arn:
+                    type: string
+                    example: "arn:aws:iam::123456789012:role/cross-account-role"
+                  attached_policies:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "arn:aws:iam::aws:policy/ReadOnlyAccess"
+        '400':
+          description: Missing or invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "account_id, role_name, and assume_role_policy_document are required"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "IAM error: AccessDenied"
+  /api/sso/iam/list-users:
+    post:
+      tags:
+        - iam-api
+      summary: List IAM Users
+      description: |
+        Lists IAM users in the target AWS account using cross-account role assumption.
+        Returns a paginated list of user details.
+      operationId: listIamUsers
+      requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               properties:
-                error:
+                account_id:
                   type: string
-                  example: "account_id, role_name, and assume_role_policy_document are required"
-      '500':
-        description: Internal server error
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
+                  example: "123456789012"
+                region:
                   type: string
-                  example: "IAM error: AccessDenied"
+                  example: "us-east-1"
+                marker:
+                  type: string
+                  description: Optional marker for pagination (returned from previous response if `is_truncated` is true).
+                  example: "XYZABC123TOKEN"
+      responses:
+        '200':
+          description: List of IAM users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        UserName:
+                          type: string
+                          example: "johndoe"
+                        UserId:
+                          type: string
+                          example: "AIDAEXAMPLEID"
+                        Arn:
+                          type: string
+                          example: "arn:aws:iam::123456789012:user/johndoe"
+                        CreateDate:
+                          type: string
+                          format: date-time
+                          example: "2024-05-12T10:24:18.123Z"
+                  is_truncated:
+                    type: boolean
+                    example: true
+                  next_marker:
+                    type: string
+                    example: "XYZABC123TOKEN"
+        '400':
+          description: Missing or invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "account_id is required"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "IAM error: AccessDenied"

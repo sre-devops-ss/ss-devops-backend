@@ -29,13 +29,13 @@ Resources:
   ApiGatewayApi:
     Type: AWS::Serverless::Api
     Properties:
-      Name: "ss-api"
+      Name: "iam-api"
       StageName: !Ref Environment
 
   IAMCreateFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../sso-api
+      CodeUri: ../iam-api
       FunctionName: Devops-iam_create
       Handler: iam_create.lambda_handler
       Policies:
@@ -53,7 +53,7 @@ Resources:
         CreateIAMAPI:
           Type: Api
           Properties:
-            Path: /iam/create
+            Path: /create-role
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
@@ -61,10 +61,37 @@ Resources:
         Variables:
           ROLE_NAME: !Ref CrossAccRoleName
           REGION: !Ref "AWS::Region"
+
+  IAMUserListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../iam-api
+      FunctionName: Devops-iam_user_list
+      Handler: iam_user_list.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - iam:ListUsers
+              Resource: "*"
+      Events:
+        ListIAMUsersAPI:
+          Type: Api
+          Properties:
+            Path: /list-users
+            Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+
   ApiGatewayId:
     Type: AWS::SSM::Parameter
     DependsOn: ApiGatewayApi
     Properties:
-      Name: "/devops-backend/sso-api/id"
+      Name: "/devops-backend/iam-api/id"
       Type: String
       Value: { Ref: ApiGatewayApi } 
