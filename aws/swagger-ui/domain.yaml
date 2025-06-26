@@ -7,7 +7,6 @@ Parameters:
   Environment:
     Type: String
     Default: dev
-
   Customdomain:
     Type: AWS::SSM::Parameter::Value<String>
     Default: "/devops-backend/api/custom_domain"

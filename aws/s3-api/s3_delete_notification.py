@@ -49,7 +49,6 @@ class S3DeleteNotifier:
                     'sns_topic_arn': sns_topic_arn
                 })
             }
-
         except Exception as e:
             logger.error(f"Notification setup failed: {str(e)}")
             raise
