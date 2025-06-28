@@ -227,6 +227,34 @@ Resources:
         Variables:
           ROLE_NAME: !Ref CrossAccRoleName
           REGION: !Ref "AWS::Region"
+
+    # /ec2/listInstance
+  EC2DiscribeInatances:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../ec2-api
+      FunctionName: Devops-ec2_list_instances
+      Handler: ec2_list_instances.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudwatch:*
+                - sts:AssumeRole
+                - ec2:DescribeInstances
+              Resource: "*"
+      Events:
+        UpdateAlarmToDbAPI:
+          Type: Api
+          Properties:
+            Path: /listInstances
+            Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
   
   ApiGatewayId:
     Type: AWS::SSM::Parameter
