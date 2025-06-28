@@ -88,6 +88,65 @@ Resources:
           ROLE_NAME: !Ref CrossAccRoleName
           REGION: !Ref "AWS::Region"
 
+  IAMUserReport:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../iam-api
+      FunctionName: Devops-iam_user_report
+      Handler: iam_user_report.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - iam:ListUsers
+                - ssm:Describe*
+                - ssm:Get*
+                - ssm:List*
+              Resource: "*"
+      Events:
+        ListIAMUsersAPI:
+          Type: Api
+          Properties:
+            Path: /list-users-report
+            Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+
+  IAMRoleReport:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../iam-api
+      FunctionName: Devops-iam_role_report
+      Handler: iam_role_report.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - iam:ListUsers
+                - ssm:Describe*
+                - ssm:Get*
+                - ssm:List*
+              Resource: "*"
+      Events:
+        ListIAMUsersAPI:
+          Type: Api
+          Properties:
+            Path: /list-role-report
+            Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+  
+
   ApiGatewayId:
     Type: AWS::SSM::Parameter
     DependsOn: ApiGatewayApi
