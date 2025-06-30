@@ -514,7 +514,7 @@ paths:
         '400':
           description: Invalid input
   
-  /api/sso/iam/create-role:
+  /api/iam/create-role:
     post:
       tags:
         - iam-api
@@ -602,7 +602,7 @@ paths:
                   error:
                     type: string
                     example: "IAM error: AccessDenied"
-  /api/sso/iam/list-users:
+  /api/iam/list-users:
     post:
       tags:
         - iam-api
