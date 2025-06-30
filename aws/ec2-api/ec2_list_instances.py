@@ -1,7 +1,11 @@
 import json
 import boto3
 from botocore.exceptions import ClientError
-
+headers= {
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': f"*",
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+}
 def lambda_handler(event, context):
     try:
         body = json.loads(event['body'])
@@ -32,6 +36,7 @@ def lambda_handler(event, context):
 
         return {
             "statusCode": 200,
+            "headers": headers,
             "body": json.dumps(instances)
         }
 
@@ -39,6 +44,7 @@ def lambda_handler(event, context):
         print(f"ClientError: {e}")
         return {
             "statusCode": 500,
+            "headers": headers,
             "body": json.dumps({"error": "Failed to describe instances."})
         }
 
@@ -46,5 +52,6 @@ def lambda_handler(event, context):
         print(f"Exception: {e}")
         return {
             "statusCode": 500,
+            "headers": headers,
             "body": json.dumps({"error": "Internal server error."})
         }
