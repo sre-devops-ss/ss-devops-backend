@@ -100,11 +100,21 @@ class UserProvider:
     def has_group(self, group) -> bool:
         return group in self.groups
 
-    def get_permission_for_account(self, account_id: str) -> Optional[str]:
-        for acc in self.allowed_accounts:
-            if acc.account_id == account_id and acc.enabled:
-                return True
-        return None
+    def get_permission_for_account(self, account_id: str, user_data = None) -> Optional[str]:
+        if self.allowed_accounts.length != 0:
+            for acc in self.allowed_accounts:
+                if acc.account_id == account_id and acc.enabled:
+                    return True
+                else:
+                    return False
+        else:
+            if user_data:
+                for acc in user_data.allowed_accounts:
+                    if acc.account_id == account_id and acc.enabled:
+                        return True
+                    else:
+                        return False
+        # return None
 
     def get_user_id_from_jwt(self, event): 
         try:
