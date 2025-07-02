@@ -1,0 +1,78 @@
+import json
+import os
+from datetime import datetime
+from typing import List, Optional
+import pymongo
+from jwt import decode as jwt_decode
+
+from user_provider import UserProvider  # Assume your models are imported from here
+
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://...")
+DB_NAME = "your_db"
+COLLECTION_NAME = "users"
+
+mongo_client = pymongo.MongoClient(MONGO_URI)
+user_collection = mongo_client[DB_NAME][COLLECTION_NAME]
+
+def get_user_id_from_jwt(event):
+    try:
+        claims = event["requestContext"]["authorizer"]["claims"]
+        return claims.get("sub")
+    except Exception:
+        return None
+
+def lambda_handler(event, context):
+    try:
+        # Step 1: Extract user ID from Cognito JWT
+        user_id = get_user_id_from_jwt(event)
+        if not user_id:
+            return {
+                "statusCode": 401,
+                "body": json.dumps({"message": "Unauthorized – missing or invalid token"})
+            }
+
+        # Step 2: Fetch user profile from MongoDB
+        user_data = user_collection.find_one({"_id": user_id})
+        if not user_data:
+            return {
+                "statusCode": 404,
+                "body": json.dumps({"message": "User profile not found"})
+            }
+
+        user = UserProvider.from_dict(user_data)
+
+        # Step 3: Parse incoming request to get account ID
+        body = json.loads(event.get("body", "{}"))
+        requested_account_id = body.get("accountId") or \
+            (event.get("queryStringParameters") or {}).get("accountId")
+
+        if not requested_account_id or not requested_account_id.isdigit() or len(requested_account_id) != 12:
+            return {
+                "statusCode": 400,
+                "body": json.dumps({"message": "Invalid accountId format"})
+            }
+
+        # Step 4: Check if the user is authorized for this account
+        permission = user.get_permission_for_account(requested_account_id)
+        if not permission:
+            return {
+                "statusCode": 403,
+                "body": json.dumps({"message": "Access denied for this account"})
+            }
+
+        # Step 5: (Optional) Continue with downstream logic (like fetch_data)
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": "Access granted",
+                "accountId": requested_account_id,
+                "permissionLevel": permission
+            })
+        }
+
+    except Exception as e:
+        print("Error:", str(e))
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"message": "Internal server error"})
+        }
