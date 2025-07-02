@@ -11,6 +11,7 @@ pip install --target python/lib/python3.10/site-packages/ requests
 pip install --target python/lib/python3.10/site-packages/ PyYAML
 pip install --target python/lib/python3.10/site-packages/ pymongo 
 pip install --target python/lib/python3.10/site-packages/ pydantic[bson]
+pip install --target python/lib/python3.10/site-packages/ python-jose -t
 cp relay_layer/monitor_relay.py python/lib/python3.10/site-packages
 
 zip -r relay_layer.zip ./python

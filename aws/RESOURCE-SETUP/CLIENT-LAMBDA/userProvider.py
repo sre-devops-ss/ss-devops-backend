@@ -1,14 +1,80 @@
+#https://github.com/awslabs/aws-support-tools/blob/master/Cognito/decode-verify-jwt/decode-verify-jwt.py
+
+import json
+import time
+import urllib.request
+from jose import jwk, jwt
+from jose.utils import base64url_decode
+import os
+from typing import List, Optional
+from datetime import datetime, timezone
 from account_provider import AccountProvider
+import pymongo
+from account_provider import AccountProvider
+
+
+region = os.environ["REGION"]
+userpool_id = os.environ["USERPOOL_ID"]
+app_client_id = os.environ["CLIENT_ID"]
+keys_url = 'https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json'.format(region, userpool_id)
+
+USERNAME = os.environ["MONGO_USERNAME"]
+PASSWORD = os.environ["MONGO_PASSWORD"]
+HOST = os.environ["MONGO_HOST"]
+PORT = os.environ["MONGO_PORT"]
+DATABASE = os.environ["MONGO_DATABASE"]
+
+mongo_uri = f"mongodb://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}?authSource=admin"
+client = pymongo.MongoClient(mongo_uri)
+db = client[DATABASE]
+users_collection = db["users"]
+
 class UserProvider:
-    def __init__(self, user_id: str, username: Optional[str], groups: List[str],
-                 allowed_accounts: List[AllowedAccount],
-                 created_at: Optional[datetime] = None, updated_at: Optional[datetime] = None):
+    def __init__(self, user_id = None, username = None, groups = None,
+                 allowed_accounts = [],
+                 created_at = None, updated_at = None):
         self.id = user_id  # Cognito `sub`
         self.username = username
         self.groups = groups
         self.allowed_accounts = allowed_accounts
-        self.created_at = created_at or datetime.utcnow()
-        self.updated_at = updated_at or datetime.utcnow()
+        self.created_at = created_at or datetime.now(timezone.utc)
+        self.updated_at = updated_at or datetime.now(timezone.utc)
+        
+    
+    def varify_jwt(self, token, context):
+        
+        with urllib.request.urlopen(keys_url) as f:
+            response = f.read()
+        keys = json.loads(response.decode('utf-8'))['keys']
+
+        # token = event['token']
+        headers = jwt.get_unverified_headers(token)
+        kid = headers['kid']
+        key_index = -1
+        for i in range(len(keys)):
+            if kid == keys[i]['kid']:
+                key_index = i
+                break
+        if key_index == -1:
+            print('Public key not found in jwks.json')
+            return False
+        public_key = jwk.construct(keys[key_index])
+
+        message, encoded_signature = str(token).rsplit('.', 1)
+        decoded_signature = base64url_decode(encoded_signature.encode('utf-8'))
+        if not public_key.verify(message.encode("utf8"), decoded_signature):
+            print('Signature verification failed')
+            return False
+        print('Signature successfully verified')
+        claims = jwt.get_unverified_claims(token)
+        if time.time() > claims['exp']:
+            print('Token is expired')
+            return False
+        if claims['aud'] != app_client_id:
+            print('Token was not issued for this audience')
+            return False
+        print(claims)
+        return claims
 
     def to_dict(self):
         return {
@@ -21,7 +87,7 @@ class UserProvider:
         }
 
 
-    def from_dict(data):
+    def from_dict(self, data):
         return UserProvider(
             user_id=data["_id"],
             username=data.get("username"),
@@ -31,13 +97,22 @@ class UserProvider:
             updated_at=data.get("updatedAt"),
         )
 
-    def has_group(self, group: str) -> bool:
+    def has_group(self, group) -> bool:
         return group in self.groups
 
     def get_permission_for_account(self, account_id: str) -> Optional[str]:
         for acc in self.allowed_accounts:
             if acc.account_id == account_id and acc.enabled:
-                return acc.permission_level
+                return True
         return None
 
+    def get_user_id_from_jwt(self, event): 
+        try:
+            return event["requestContext"]["authorizer"]["claims"].get("sub")
+        except Exception:
+            return None
+        
+    
+        
+    
 

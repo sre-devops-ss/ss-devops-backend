@@ -12,6 +12,13 @@ logger.setLevel(logging.INFO)
 
 http = urllib3.PoolManager()
 API_GATEWAY_URL = "https://xjgkd4ty8i.execute-api.ap-south-1.amazonaws.com/dashboard/dump"
+
+headers= {
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': f"*",
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+}
+
 def assume_role(account_id, role_name):
     sts_client = boto3.client('sts')
     assumed_role = sts_client.assume_role(
@@ -187,6 +194,7 @@ def lambda_handler(event, context):
         "statusCode": 200,
         "body": json.dumps({
             "status": "success",
+            "headers": headers,
             "processed_accounts": 1 if 'method' in event else len(account_data)
         })
     }

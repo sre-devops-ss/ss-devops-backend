@@ -5,6 +5,12 @@ from utils.cross_account import CrossAccountClient
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+headers= {
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': f"*",
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+}
 def lambda_handler(event, context):
     try:
         # Parse input
@@ -59,7 +65,8 @@ def lambda_handler(event, context):
             'body': json.dumps({
                 'users': users,
                 'is_truncated': is_truncated,
-                'next_marker': next_marker
+                'next_marker': next_marker,
+                'headers': headers
             })
         }
 
@@ -67,5 +74,6 @@ def lambda_handler(event, context):
         logger.error(f"Lambda error: {str(e)}")
         return {
             'statusCode': 500,
-            'body': json.dumps({'error': str(e)})
+            'body': json.dumps({'error': str(e)}),
+            'headers': headers
         } 

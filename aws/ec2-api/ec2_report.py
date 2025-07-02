@@ -11,6 +11,12 @@ ssm = boto3.client('ssm')
 sts = boto3.client('sts')
 API_GATEWAY_URL = "https://xjgkd4ty8i.execute-api.ap-south-1.amazonaws.com/dashboard/dump"
 
+headers= {
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': f"*",
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+}
+
 def process_account(cross_account_id, account_name):
     all_instances = []
     try:
@@ -191,14 +197,14 @@ def lambda_handler(event, context):
         return {
             "statusCode": 200,
             "body": json.dumps(all_results, indent=2),
-            "headers": {"Content-Type": "application/json"}
+            "headers": headers,
         }
 
     except Exception as e:
         return {
             "statusCode": 500,
             "body": json.dumps({"error": str(e)}),
-            "headers": {"Content-Type": "application/json"}
+            "headers": headers,
         }
 
 

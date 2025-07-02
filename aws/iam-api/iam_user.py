@@ -7,6 +7,12 @@ iam_client = boto3.client("iam")
 
 INACTIVE_DAYS_THRESHOLD = int(os.getenv("INACTIVE_DAYS_THRESHOLD", 90))
 
+headers= {
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': f"*",
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+}
+
 def process_role(role):
     role_name = role["RoleName"]
     creation_time = role["CreateDate"]
@@ -53,9 +59,7 @@ def lambda_handler(event, context):
                 "INACTIVE_DAYS_THRESHOLD": INACTIVE_DAYS_THRESHOLD,
                 "roles": roles_with_details
             },
-            "headers": {
-                "Content-Type": "application/json"
-            }
+            "headers": headers
         }
 
         return json_response
@@ -64,8 +68,6 @@ def lambda_handler(event, context):
         return {
             "statusCode": 500,
             "body": {"error": str(e)},
-            "headers": {
-                "Content-Type": "application/json"
-            }
+            "headers": headers
         }
         
