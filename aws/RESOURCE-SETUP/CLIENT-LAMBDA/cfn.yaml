@@ -4,6 +4,7 @@ Transform:
   - 'AWS::Serverless-2016-10-31'
 
 Parameters:
+  
   RefreshToken:
     Type: String
     Description: 'Refresh token to be stored securely in SSM Parameter Store'

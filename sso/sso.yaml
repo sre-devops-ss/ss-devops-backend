@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to Create an IAM Role for SupportSages Consultancy Services Pvt Ltd
+
+Parameters:
+  SourceAccountNumber:
+    Description: Account Number able to assume the role with full administrative rights to the account this template is run in.
+    Type: String
+    MinLength: 12
+    MaxLength: 12
+    Default: 465145322670
+
+  IAMRoleName:
+    Description: Name of the customer
+    Type: String
+    Default: "SSO-DevopsRole-Vandalay"
+Resources:
+  CrossAccountRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref IAMRoleName
+      Description: !Sub Allows AWS account number ${SourceAccountNumber} full admin rights to this AWS account.
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS:
+              - !Sub arn:aws:iam::${SourceAccountNumber}:root
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess

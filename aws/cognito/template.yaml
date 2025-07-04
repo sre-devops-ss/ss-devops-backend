@@ -1,8 +1,17 @@
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
 Description: AWS CloudFormation template for a Serverless application with Cognito authentication
 
+Globals:
+  Function:
+    Runtime: python3.10
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
 Resources:
-
   ServerlessDeploymentBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
@@ -109,6 +118,31 @@ Resources:
       SupportedIdentityProviders:
         - COGNITO
       PreventUserExistenceErrors: ENABLED
+  
+  LambdaAuthorizerAccess:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../cognito
+      Handler: lambda_authorizer-role.lambda_handler
+      Runtime: python3.10
+      MemorySize: 128
+      FunctionName: Devops-lambdaAuthorizerAccess
+      Description: "Lambda function to authorize access to the DevOps backend"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - iam:ListUsers
+                - ssm:Describe*
+                - ssm:Get*
+                - ssm:List*
+              Resource: "*"
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref CognitoUserPool
+          APP_CLIENT_ID: !Ref CognitoUserPoolClient
+          REGION: !Ref "AWS::Region"
 
   # SSM Parameters
   SsmUserPoolId:

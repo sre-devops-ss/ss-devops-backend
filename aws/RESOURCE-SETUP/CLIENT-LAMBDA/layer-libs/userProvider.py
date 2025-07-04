@@ -3,31 +3,15 @@
 import json
 import time
 import urllib.request
-from jose import jwk, jwt
-from jose.utils import base64url_decode
 import os
 from typing import List, Optional
 from datetime import datetime, timezone
 from account_provider import AccountProvider
-import pymongo
 from account_provider import AccountProvider
-
 
 region = os.environ["REGION"]
 userpool_id = os.environ["USERPOOL_ID"]
 app_client_id = os.environ["CLIENT_ID"]
-keys_url = 'https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json'.format(region, userpool_id)
-
-USERNAME = os.environ["MONGO_USERNAME"]
-PASSWORD = os.environ["MONGO_PASSWORD"]
-HOST = os.environ["MONGO_HOST"]
-PORT = os.environ["MONGO_PORT"]
-DATABASE = os.environ["MONGO_DATABASE"]
-
-mongo_uri = f"mongodb://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}?authSource=admin"
-client = pymongo.MongoClient(mongo_uri)
-db = client[DATABASE]
-users_collection = db["users"]
 
 class UserProvider:
     def __init__(self, user_id = None, username = None, groups = None,
@@ -41,12 +25,16 @@ class UserProvider:
         self.updated_at = updated_at or datetime.now(timezone.utc)
         
     
-    def varify_jwt(self, token, context):
+    def varify_jwt(self, token,keys_url=None,app_client_id=None):
+        if keys_url is None:
+            keys_url = f'https://cognito-idp.{region}.amazonaws.com/{userpool_id}/.well-known/jwks.json'
+        if app_client_id is None:
+            app_client_id = os.environ["CLIENT_ID"]
         
         with urllib.request.urlopen(keys_url) as f:
             response = f.read()
         keys = json.loads(response.decode('utf-8'))['keys']
-
+ 
         # token = event['token']
         headers = jwt.get_unverified_headers(token)
         kid = headers['kid']
@@ -59,7 +47,7 @@ class UserProvider:
             print('Public key not found in jwks.json')
             return False
         public_key = jwk.construct(keys[key_index])
-
+ 
         message, encoded_signature = str(token).rsplit('.', 1)
         decoded_signature = base64url_decode(encoded_signature.encode('utf-8'))
         if not public_key.verify(message.encode("utf8"), decoded_signature):

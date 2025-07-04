@@ -83,7 +83,7 @@ def get_config(config, ssm_client, sns_topic_arn_parameter_name):
         'alarm_actions': []
     }
 
-    # Fetch SNS topic ARN from SSM
+    #
     sns_response = ssm_client.get_parameter(
         Name=sns_topic_arn_parameter_name,
         WithDecryption=False

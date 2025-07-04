@@ -5,14 +5,14 @@ cd RESOURCE-SETUP/CLIENT-LAMBDA
 
 
 
-mkdir -p python/lib/python3.10/site-packages
+mkdir -p python/lib/python3.1/site-packages
 pip install --target python/lib/python3.10/site-packages/ boto3
 pip install --target python/lib/python3.10/site-packages/ requests
 pip install --target python/lib/python3.10/site-packages/ PyYAML
 pip install --target python/lib/python3.10/site-packages/ pymongo 
 pip install --target python/lib/python3.10/site-packages/ pydantic[bson]
 pip install --target python/lib/python3.10/site-packages/ python-jose -t
-cp relay_layer/monitor_relay.py python/lib/python3.10/site-packages
+cp relay_layer/*.py python/lib/python3.10/site-packages
 
 zip -r relay_layer.zip ./python
 zip client_lambda.zip client-provider.py
@@ -28,3 +28,25 @@ aws s3 cp notification.zip  s3://ss-backend-config-ap-south-1-979453078508/
 
 
 https://ap-south-1.console.aws.amazon.com/cloudformation/home?region=ap-south-1#/stacks/quickcreate?templateURL=https://ss-backend-config-ap-south-1-979453078508.s3.ap-south-1.amazonaws.com/cfn.yaml&stackName=cross-acct-role&param_RefreshToken=ashhshsh&param_Domain=ss.com
+
+
+https://ap-south-1.console.aws.amazon.com/cloudformation/home?region=ap-south-1#/stacks/quickcreate?templateURL=https://ss-backend-config-ap-south-1-979453078508.s3.ap-south-1.amazonaws.com/sso.yaml&stackName=cross-acc-role-supportsages
+
+
+----
+
+
+mkdir -p python/lib/python3.12/site-packages
+pip install --target python/lib/python3.10/site-packages/ boto3
+pip install --target python/lib/python3.10/site-packages/ requests
+pip install --target python/lib/python3.10/site-packages/ PyYAML
+pip install --target python/lib/python3.10/site-packages/ jwt
+pip install --target python/lib/python3.10/site-packages/ pyjwt
+pip install --target python/lib/python3.10/site-packages/ pymongo 
+pip install --target python/lib/python3.10/site-packages/ python-jose
+
+cp relay_layer/*.py python/lib/python3.12/site-packages
+
+zip -r layer.zip ./python
+zip client_lambda.zip client-provider.py
+zip notification.zip notification.py
