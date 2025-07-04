@@ -144,6 +144,13 @@ Resources:
           USER_POOL_ID: !Ref CognitoUserPool
           APP_CLIENT_ID: !Ref CognitoUserPoolClient
           REGION: !Ref "AWS::Region"
+  LambdaInvokePermissionForAPIGateway:
+  Type: AWS::Lambda::Permission
+  Properties:
+    FunctionName: !Ref LambdaAuthorizerAccess
+    Action: lambda:InvokeFunction
+    Principal: apigateway.amazonaws.com
+
 
   # SSM Parameters
   SsmUserPoolId:
