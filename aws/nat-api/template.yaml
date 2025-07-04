@@ -1,36 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Monitoring Backend for AWS Resources
+Description: NAT Gateway Monitoring Backend
 
 Parameters:
-  SnsTopicArn:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: "/devops-backend/authapi/id"
-  CassandraHost:
-    Type: String
-    Default: "NONE"
-    Description: Cassandra host address
-  
-  CassandraPort:
-    Type: Number
-    Description: Cassandra port number
-    Default: 9042
-
-  CassandraUsername:
-    Type: String
-    Default: "NONE"
-    Description: Cassandra username
-  
-  CassandraPassword:
-    Type: String
-    Default: "NONE"
-    Description: Cassandra password
-    NoEcho: true
-
   Environment:
     Type: String
     Default: dev
-  
   CrossAccRoleName:
     Type: AWS::SSM::Parameter::Value<String>
     Default: '/ss/backend/cross-account-role-name'
@@ -45,39 +20,35 @@ Globals:
     MemorySize: 256
     Environment:
       Variables:
-        CASSANDRA_HOST: !Ref CassandraHost
-        CASSANDRA_PORT: !Ref CassandraPort
-        CASSANDRA_USER: !Ref CassandraUsername
-        CASSANDRA_PASSWORD: !Ref CassandraPassword
-        CASSANDRA_KEYSPACE: monitoring
-        ROLE_NAME: APIGATEWAYCrossAccountMetricsRole
-        USE_AWS_KEYSPACE: "false"
+        ROLE_NAME: !Ref CrossAccRoleName
+        REGION: !Ref "AWS::Region"
   Api:
     Cors:
-      AllowMethods: "'GET,POST,PUT,OPTIONS'"
+      AllowMethods: "'GET,POST,OPTIONS'"
       AllowHeaders: "'*'"
       AllowOrigin: "'*'"
       AllowCredentials: "'*'"
+
 Resources:
   ApiGatewayApi:
     Type: AWS::Serverless::Api
     Properties:
-      Name: "apigateway-api"
+      Name: "nat-api"
       StageName: !Ref Environment
 
-  APIGATEWAYCreateMonitoringFunction:
+  NATCreateMonitoringFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../apigateway-api
-      FunctionName: Devops-apigateway_monitoring_create
-      Handler: apigateway_monitoring_create.lambda_handler
+      CodeUri: .
+      FunctionName: Devops-nat_monitoring_create
+      Handler: nat_monotoring_create.lambda_handler
       Policies:
         - Statement:
             - Effect: Allow
               Action:
                 - sts:AssumeRole
                 - cloudwatch:*
-                - ssm:*
+                - ssm:GetParameter
               Resource: "*"
       Events:
         InstallAPI:
@@ -96,7 +67,14 @@ Resources:
     Type: AWS::SSM::Parameter
     DependsOn: ApiGatewayApi
     Properties:
-      Name: "/devops-backend/apigatewayapi/id"
+      Name: "/devops-backend/natapi/id"
       Type: String
-      Value: !Ref ApiGatewayApi
+      Value: { Ref: ApiGatewayApi }
 
+Outputs:
+  ApiGatewayApi:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+  ApiGatewayApiId:
+    Description: "API Gateway ID"
+    Value: !Ref ApiGatewayApi 

@@ -1,7 +1,6 @@
 import boto3
-import json
-from botocore.exceptions import ClientError
 import logging
+from botocore.exceptions import ClientError
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -19,16 +18,12 @@ class CrossAccountClient:
         """Assume role in the target account."""
         try:
             sts_client = boto3.client('sts')
-            
             assume_role_params = {
                 'RoleArn': self.role_arn,
                 'RoleSessionName': 'CrossAccSession'
             }
-            
-            # Add external ID if provided for additional security
             if self.external_id:
                 assume_role_params['ExternalId'] = self.external_id
-            
             response = sts_client.assume_role(**assume_role_params)
             self.credentials = response['Credentials']
             return True
@@ -49,18 +44,4 @@ class CrossAccountClient:
                 aws_secret_access_key=self.credentials['SecretAccessKey'],
                 aws_session_token=self.credentials['SessionToken']
             )
-        return self._clients[service_name]
-
-    def store_monitoring_config(self, resource_type, config):
-        """Store monitoring configuration for later use."""
-        # This could be extended to store config in a database
-        # For now, we'll just log it
-        logger.info(f"Stored monitoring config for {resource_type}: {config}")
-        return True
-
-def get_account_id_from_role_arn(role_arn):
-    """Extract account ID from role ARN"""
-    try:
-        return role_arn.split(':')[4]
-    except:
-        return None 
+        return self._clients[service_name] 
