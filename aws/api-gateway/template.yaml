@@ -96,7 +96,7 @@ Resources:
     Type: AWS::SSM::Parameter
     DependsOn: ApiGatewayApi
     Properties:
-      Name: "/devops-backend/apigatewayapi/id"
+      Name: "/ss/backend/apigateway-monitoring-api/id"
       Type: String
       Value: !Ref ApiGatewayApi
 

@@ -67,7 +67,7 @@ Resources:
     Type: AWS::SSM::Parameter
     DependsOn: ApiGatewayApi
     Properties:
-      Name: "/devops-backend/natapi/id"
+      Name: "/ss/backend/nat-monitoring-api/id"
       Type: String
       Value: { Ref: ApiGatewayApi }
 
