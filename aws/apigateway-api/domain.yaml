@@ -4,7 +4,7 @@ Description: Domain configuration for Generic Monitoring API Gateway
 Parameters:
   ApiGatewayID:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: "/ss/backend/generic-monitoring-api/id"
+    Default: "/ss/backend/apigateway-monitoring-api/id"
   Environment:
     Type: String
     Default: dev
@@ -19,6 +19,6 @@ Resources:
     Properties:
       ApiId:
         Ref: ApiGatewayID
-      ApiMappingKey: "api/generic-monitoring"
+      ApiMappingKey: "api/apigateway"
       DomainName: !Ref Customdomain
       Stage: !Ref Environment 
