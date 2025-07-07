@@ -27,18 +27,63 @@ lambda-api/
 
 ## Usage
 
-### Install Monitoring
+### 1. Create Errors Alarm
 
-**POST** `/install`
+**POST** `/errors-alarm`
 
 **Request Body:**
 ```json
 {
   "function_name": "MyLambdaFunction",
-  "region": "us-east-1",
   "config": {
     "error_threshold": 1,
+    "period": 60,
+    "evaluation_periods": 1,
+    "alarm_actions": []
+  }
+}
+```
+
+**Response Example:**
+```json
+{
+  "message": "Errors alarm created"
+}
+```
+
+### 2. Create Duration Alarm
+
+**POST** `/duration-alarm`
+
+**Request Body:**
+```json
+{
+  "function_name": "MyLambdaFunction",
+  "config": {
     "duration_threshold": 3000,
+    "period": 60,
+    "evaluation_periods": 1,
+    "alarm_actions": []
+  }
+}
+```
+
+**Response Example:**
+```json
+{
+  "message": "Duration alarm created"
+}
+```
+
+### 3. Create Log Error Alarm
+
+**POST** `/log-error-alarm`
+
+**Request Body:**
+```json
+{
+  "function_name": "MyLambdaFunction",
+  "config": {
     "log_error_threshold": 1,
     "period": 60,
     "evaluation_periods": 1,
@@ -50,25 +95,27 @@ lambda-api/
 **Response Example:**
 ```json
 {
-  "message": "Alarms created"
+  "message": "Log error alarm created"
 }
 ```
 
 ## Alarms Created
 
-The API creates three CloudWatch alarms:
+Each endpoint creates specific CloudWatch alarms:
 
-1. **{function_name}-errors-alarm**: Monitors Lambda invocation errors
-2. **{function_name}-duration-alarm**: Monitors Lambda execution duration  
-3. **{function_name}-log-error-alarm**: Monitors errors in Lambda logs
+### Errors Alarm Endpoint
+- **{function_name}-errors-alarm**: Monitors Lambda invocation errors
 
-## Metric Filter
+### Duration Alarm Endpoint
+- **{function_name}-duration-alarm**: Monitors Lambda execution duration
 
-A CloudWatch metric filter is created to monitor log errors:
-- **Log Group**: `/aws/lambda/{function_name}`
-- **Filter Pattern**: `?"ERROR"`
-- **Metric Namespace**: `LambdaLogs`
-- **Metric Name**: `{function_name}-log-errors`
+### Log Error Alarm Endpoint
+- **{function_name}-log-error-alarm**: Monitors errors in Lambda logs
+- **Metric Filter**: Creates a CloudWatch metric filter to monitor log errors
+  - **Log Group**: `/aws/lambda/{function_name}`
+  - **Filter Pattern**: `?"ERROR"`
+  - **Metric Namespace**: `LambdaLogs`
+  - **Metric Name**: `{function_name}-log-errors`
 
 ## Deployment
 

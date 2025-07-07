@@ -65,12 +65,66 @@ Resources:
       Name: "lambda-api"
       StageName: !Ref Environment
 
-  LAMBDACreateMonitoringFunction:
+  LAMBDACreateErrorsAlarmFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../lambda-api
-      FunctionName: Devops-lambda_monitoring_create
-      Handler: lambda_monitoring_create.lambda_handler
+      FunctionName: Devops-lambda_create_errors_alarm
+      Handler: lambda_create_errors_alarm.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - ssm:*
+              Resource: "*"
+      Events:
+        ErrorsAlarmAPI:
+          Type: Api
+          Properties:
+            Path: /errors-alarm
+            Method: post
+            RestApiId:
+              Ref: LambdaApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+
+  LAMBDACreateDurationAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../lambda-api
+      FunctionName: Devops-lambda_create_duration_alarm
+      Handler: lambda_create_duration_alarm.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - ssm:*
+              Resource: "*"
+      Events:
+        DurationAlarmAPI:
+          Type: Api
+          Properties:
+            Path: /duration-alarm
+            Method: post
+            RestApiId:
+              Ref: LambdaApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+
+  LAMBDACreateLogErrorAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../lambda-api
+      FunctionName: Devops-lambda_create_log_error_alarm
+      Handler: lambda_create_log_error_alarm.lambda_handler
       Policies:
         - Statement:
             - Effect: Allow
@@ -81,10 +135,10 @@ Resources:
                 - ssm:*
               Resource: "*"
       Events:
-        InstallAPI:
+        LogErrorAlarmAPI:
           Type: Api
           Properties:
-            Path: /install
+            Path: /log-error-alarm
             Method: post
             RestApiId:
               Ref: LambdaApi

@@ -14,19 +14,15 @@ def lambda_handler(event, context):
             'timestamp': datetime.utcnow().isoformat(),
             'version': '1.0.0',
             'endpoints': {
-                'install': 'POST /install - Set up monitoring for Lambda functions',
-                'getMetrics': 'GET/POST /getMetrics - Fetch CloudWatch metrics',
-                'getAlarms': 'GET/POST /getAlarms - Fetch CloudWatch alarms',
-                'listResources': 'GET/POST /listResources - List Lambda functions',
-                'updateMetricsToDb': 'POST /updateMetricsToDb - Update metrics to database',
-                'updateAlarmsToDb': 'POST /updateAlarmsToDb - Update alarms to database',
+                'errors-alarm': 'POST /errors-alarm - Create Lambda errors alarm',
+                'duration-alarm': 'POST /duration-alarm - Create Lambda duration alarm',
+                'log-error-alarm': 'POST /log-error-alarm - Create Lambda log error alarm',
                 'health': 'GET /health - Health check endpoint'
             },
             'supported_services': [
-                'lambda_functions',
-                'lambda_logs',
-                'lambda_errors',
-                'lambda_duration'
+                'lambda_errors_alarm',
+                'lambda_duration_alarm',
+                'lambda_log_error_alarm'
             ]
         }
         
