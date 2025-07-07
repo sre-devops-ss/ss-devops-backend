@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ASG Monitoring Backend for AWS Resources
+
+Parameters:
+  SnsTopicArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/authapi/id"
+  CassandraHost:
+    Type: String
+    Default: "NONE"
+    Description: Cassandra host address
+  
+  CassandraPort:
+    Type: Number
+    Description: Cassandra port number
+    Default: 9042
+
+  CassandraUsername:
+    Type: String
+    Default: "NONE"
+    Description: Cassandra username
+  
+  CassandraPassword:
+    Type: String
+    Default: "NONE"
+    Description: Cassandra password
+    NoEcho: true
+
+  Environment:
+    Type: String
+    Default: dev
+  
+  CrossAccRoleName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: '/ss/backend/cross-account-role-name'
+  CrossAccRoleArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: '/ss/backend/cross-account-role-arn'
+
+Globals:
+  Function:
+    Runtime: python3.10
+    Timeout: 300
+    MemorySize: 256
+    Environment:
+      Variables:
+        CASSANDRA_HOST: !Ref CassandraHost
+        CASSANDRA_PORT: !Ref CassandraPort
+        CASSANDRA_USER: !Ref CassandraUsername
+        CASSANDRA_PASSWORD: !Ref CassandraPassword
+        CASSANDRA_KEYSPACE: monitoring
+        ROLE_NAME: ASGCrossAccountMetricsRole
+        USE_AWS_KEYSPACE: "false"
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
+Resources:
+  ASGApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "asg-api"
+      StageName: !Ref Environment
+
+  ASGCreateAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../asg-api
+      FunctionName: Devops-asg_create_alarm
+      Handler: asg-create-alarm.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - autoscaling:*
+                - ec2:*
+                - ssm:*
+              Resource: "*"
+      Events:
+        CreateAlarmAPI:
+          Type: Api
+          Properties:
+            Path: /create-alarm
+            Method: post
+            RestApiId:
+              Ref: ASGApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+
+  ASGApiId:
+    Type: AWS::SSM::Parameter
+    DependsOn: ASGApi
+    Properties:
+      Name: "/ss/backend/asg-monitoring-api/id"
+      Type: String
+      Value: !Ref ASGApi 
