@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Monitoring Backend for AWS Resources
+Description: Lambda Monitoring Backend for AWS Resources
 
 Parameters:
   SnsTopicArn:
@@ -50,7 +50,7 @@ Globals:
         CASSANDRA_USER: !Ref CassandraUsername
         CASSANDRA_PASSWORD: !Ref CassandraPassword
         CASSANDRA_KEYSPACE: monitoring
-        ROLE_NAME: APIGATEWAYCrossAccountMetricsRole
+        ROLE_NAME: LAMBDACrossAccountMetricsRole
         USE_AWS_KEYSPACE: "false"
   Api:
     Cors:
@@ -59,24 +59,25 @@ Globals:
       AllowOrigin: "'*'"
       AllowCredentials: "'*'"
 Resources:
-  ApiGatewayApi:
+  LambdaApi:
     Type: AWS::Serverless::Api
     Properties:
-      Name: "apigateway-api"
+      Name: "lambda-api"
       StageName: !Ref Environment
 
-  APIGATEWAYCreateMonitoringFunction:
+  LAMBDACreateMonitoringFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../apigateway-api
-      FunctionName: Devops-apigateway_monitoring_create
-      Handler: apigateway_monitoring_create.lambda_handler
+      CodeUri: ../lambda-api
+      FunctionName: Devops-lambda_monitoring_create
+      Handler: lambda_monitoring_create.lambda_handler
       Policies:
         - Statement:
             - Effect: Allow
               Action:
                 - sts:AssumeRole
                 - cloudwatch:*
+                - logs:*
                 - ssm:*
               Resource: "*"
       Events:
@@ -86,16 +87,16 @@ Resources:
             Path: /install
             Method: post
             RestApiId:
-              Ref: ApiGatewayApi
+              Ref: LambdaApi
       Environment:
         Variables:
           ROLE_NAME: !Ref CrossAccRoleName
           REGION: !Ref "AWS::Region"
 
-  ApiGatewayId:
+  LambdaApiId:
     Type: AWS::SSM::Parameter
-    DependsOn: ApiGatewayApi
+    DependsOn: LambdaApi
     Properties:
-      Name: "/ss/backend/apigateway-monitoring-api/id"
+      Name: "/ss/backend/lambda-monitoring-api/id"
       Type: String
-      Value: !Ref ApiGatewayApi
+      Value: !Ref LambdaApi 
