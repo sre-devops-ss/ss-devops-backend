@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Domain configuration for Target Group Monitoring API Gateway
+
+Parameters:
+  ApiGatewayID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/ss/backend/tg-monitoring-api/id"
+  Environment:
+    Type: String
+    Default: dev
+
+  Customdomain:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/api/custom_domain"
+
+Resources:
+  ApiPathMappingTG:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      ApiId:
+        Ref: ApiGatewayID
+      ApiMappingKey: "api/tg"
+      DomainName: !Ref Customdomain
+      Stage: !Ref Environment 
