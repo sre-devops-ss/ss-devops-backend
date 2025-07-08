@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Billing Monitoring Backend for AWS Resources
+
+Parameters:
+  SnsTopicArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/authapi/id"
+  CassandraHost:
+    Type: String
+    Default: "NONE"
+    Description: Cassandra host address
+  
+  CassandraPort:
+    Type: Number
+    Description: Cassandra port number
+    Default: 9042
+
+  CassandraUsername:
+    Type: String
+    Default: "NONE"
+    Description: Cassandra username
+  
+  CassandraPassword:
+    Type: String
+    Default: "NONE"
+    Description: Cassandra password
+    NoEcho: true
+
+  Environment:
+    Type: String
+    Default: dev
+  
+  CrossAccRoleName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: '/ss/backend/cross-account-role-name'
+  CrossAccRoleArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: '/ss/backend/cross-account-role-arn'
+
+Globals:
+  Function:
+    Runtime: python3.10
+    Timeout: 300
+    MemorySize: 256
+    Environment:
+      Variables:
+        CASSANDRA_HOST: !Ref CassandraHost
+        CASSANDRA_PORT: !Ref CassandraPort
+        CASSANDRA_USER: !Ref CassandraUsername
+        CASSANDRA_PASSWORD: !Ref CassandraPassword
+        CASSANDRA_KEYSPACE: monitoring
+        ROLE_NAME: BillingCrossAccountMetricsRole
+        USE_AWS_KEYSPACE: "false"
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
+Resources:
+  BillingApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "billing-api"
+      StageName: !Ref Environment
+
+  BillingCreateAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../billing-api
+      FunctionName: Devops-billing_create_alarm
+      Handler: billing-create-alarm.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - ce:*
+                - ssm:*
+              Resource: "*"
+      Events:
+        CreateAlarmAPI:
+          Type: Api
+          Properties:
+            Path: /create-alarm
+            Method: post
+            RestApiId:
+              Ref: BillingApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+
+  BillingApiId:
+    Type: AWS::SSM::Parameter
+    DependsOn: BillingApi
+    Properties:
+      Name: "/ss/backend/billing-monitoring-api/id"
+      Type: String
+      Value: !Ref BillingApi 
