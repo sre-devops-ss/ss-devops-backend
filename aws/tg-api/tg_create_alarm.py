@@ -80,8 +80,8 @@ def lambda_handler(event, context):
     try:
         body = json.loads(event.get('body', '{}'))
 
-        lb_name = body['load_balancer_name']     # Must match CloudWatch format (e.g., app/my-alb/50dc6c495c0c9188)
-        tg_name = body['target_group_name']       # Must match CloudWatch format (e.g., targetgroup/my-tg/73e2d6bc24d8a067)
+        lb_name = body['load_balancer_name']     
+        tg_name = body['target_group_name']       
         config = body.get('config', {})
 
         default_config = {
@@ -91,7 +91,7 @@ def lambda_handler(event, context):
             'target_5xx_threshold': 10,
             'period': 60,
             'evaluation_periods': 1,
-            'alarm_actions': []  # Your SNS topic ARN here
+            'alarm_actions': []  
         }
 
         for key, val in default_config.items():

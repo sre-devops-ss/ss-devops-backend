@@ -4,7 +4,7 @@ Description: Domain configuration for Lambda Monitoring API Gateway
 Parameters:
   ApiGatewayID:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: "/ss/backend/lambda-monitoring-api/id"
+    Default: "/ss/backend/asg-monitoring-api/id"
   Environment:
     Type: String
     Default: dev
@@ -19,6 +19,6 @@ Resources:
     Properties:
       ApiId:
         Ref: ApiGatewayID
-      ApiMappingKey: "api/lambda"
+      ApiMappingKey: "api/asg"
       DomainName: !Ref Customdomain
       Stage: !Ref Environment
