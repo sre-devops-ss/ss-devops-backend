@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Monitoring Backend for AWS Resources
+Description: API Gateway Monitoring Backend for AWS Resources
 
 Parameters:
   SnsTopicArn:
@@ -58,6 +58,7 @@ Globals:
       AllowHeaders: "'*'"
       AllowOrigin: "'*'"
       AllowCredentials: "'*'"
+
 Resources:
   ApiGatewayApi:
     Type: AWS::Serverless::Api
@@ -65,12 +66,13 @@ Resources:
       Name: "apigateway-api"
       StageName: !Ref Environment
 
-  APIGATEWAYCreateMonitoringFunction:
+  # 4XX Error Alarm Function
+  APIGATEWAY4XXAlarmFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../apigateway-api
-      FunctionName: Devops-apigateway_monitoring_create
-      Handler: apigateway_monitoring_create.lambda_handler
+      CodeUri: .
+      FunctionName: Devops-apigateway_4xx_alarm_create
+      Handler: apigateway_4xx_alarm_create.lambda_handler
       Policies:
         - Statement:
             - Effect: Allow
@@ -80,10 +82,10 @@ Resources:
                 - ssm:*
               Resource: "*"
       Events:
-        InstallAPI:
+        Create4XXAlarmAPI:
           Type: Api
           Properties:
-            Path: /install
+            Path: /apigateway/4xx
             Method: post
             RestApiId:
               Ref: ApiGatewayApi
@@ -91,6 +93,78 @@ Resources:
         Variables:
           ROLE_NAME: !Ref CrossAccRoleName
           REGION: !Ref "AWS::Region"
+
+  # 5XX Error Alarm Function
+  APIGATEWAY5XXAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      FunctionName: Devops-apigateway_5xx_alarm_create
+      Handler: apigateway_5xx_alarm_creation.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - ssm:*
+              Resource: "*"
+      Events:
+        Create5XXAlarmAPI:
+          Type: Api
+          Properties:
+            Path: /apigateway/5xx
+            Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+
+  # Latency Alarm Function
+  APIGATEWAYLatencyAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      FunctionName: Devops-apigateway_latency_alarm_create
+      Handler: apigateway_latency_alarm_create.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - ssm:*
+              Resource: "*"
+      Events:
+        CreateLatencyAlarmAPI:
+          Type: Api
+          Properties:
+            Path: /apigateway/latency
+            Method: post
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+
+  # # Health Check Function
+  # APIGATEWAYHealthCheckFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: .
+  #     FunctionName: Devops-apigateway_health_check
+  #     Handler: health_check.lambda_handler
+  #     Events:
+  #       HealthCheckAPI:
+  #         Type: Api
+  #         Properties:
+  #           Path: /health
+  #           Method: get
+  #           RestApiId:
+  #             Ref: ApiGatewayApi
 
   ApiGatewayId:
     Type: AWS::SSM::Parameter

@@ -58,6 +58,7 @@ Globals:
       AllowHeaders: "'*'"
       AllowOrigin: "'*'"
       AllowCredentials: "'*'"
+
 Resources:
   ASGApi:
     Type: AWS::Serverless::Api
@@ -65,12 +66,13 @@ Resources:
       Name: "asg-api"
       StageName: !Ref Environment
 
-  ASGCreateAlarmFunction:
+  # CPU Utilization Alarm Function
+  ASGCPUAlarmFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../asg-api
-      FunctionName: Devops-asg_create_alarm
-      Handler: asg-create-alarm.lambda_handler
+      CodeUri: .
+      FunctionName: Devops-asg_cpu_alarm_create
+      Handler: asg_cpu_utilization-alarm-creation.lambda_handler
       Policies:
         - Statement:
             - Effect: Allow
@@ -82,10 +84,10 @@ Resources:
                 - ssm:*
               Resource: "*"
       Events:
-        CreateAlarmAPI:
+        CreateCPUAlarmAPI:
           Type: Api
           Properties:
-            Path: /create-alarm
+            Path: /asg/cpu
             Method: post
             RestApiId:
               Ref: ASGApi
@@ -94,10 +96,86 @@ Resources:
           ROLE_NAME: !Ref CrossAccRoleName
           REGION: !Ref "AWS::Region"
 
+  # Memory Utilization Alarm Function
+  ASGMemoryAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      FunctionName: Devops-asg_memory_alarm_create
+      Handler: asg_memory_utilization-alarm-creation.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - autoscaling:*
+                - ec2:*
+                - ssm:*
+              Resource: "*"
+      Events:
+        CreateMemoryAlarmAPI:
+          Type: Api
+          Properties:
+            Path: /asg/memory
+            Method: post
+            RestApiId:
+              Ref: ASGApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+
+  # Scaling Notification Alarm Function
+  ASGScalingAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      FunctionName: Devops-asg_scaling_alarm_create
+      Handler: asg_scaling_notification_alarm_creation.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - autoscaling:*
+                - ec2:*
+                - ssm:*
+              Resource: "*"
+      Events:
+        CreateScalingAlarmAPI:
+          Type: Api
+          Properties:
+            Path: /asg/scaling
+            Method: post
+            RestApiId:
+              Ref: ASGApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+
+  # # Health Check Function
+  # ASGHealthCheckFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: .
+  #     FunctionName: Devops-asg_health_check
+  #     Handler: health_check.lambda_handler
+  #     Events:
+  #       HealthCheckAPI:
+  #         Type: Api
+  #         Properties:
+  #           Path: /health
+  #           Method: get
+  #           RestApiId:
+  #             Ref: ASGApi
+
   ASGApiId:
     Type: AWS::SSM::Parameter
     DependsOn: ASGApi
     Properties:
       Name: "/ss/backend/asg-monitoring-api/id"
       Type: String
-      Value: !Ref ASGApi 
+      Value: !Ref ASGApi

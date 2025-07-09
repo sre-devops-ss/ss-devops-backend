@@ -58,6 +58,7 @@ Globals:
       AllowHeaders: "'*'"
       AllowOrigin: "'*'"
       AllowCredentials: "'*'"
+
 Resources:
   TGApi:
     Type: AWS::Serverless::Api
@@ -65,12 +66,13 @@ Resources:
       Name: "tg-api"
       StageName: !Ref Environment
 
-  TGCreateAlarmFunction:
+  # Response Time Alarm Function
+  TGResponseTimeAlarmFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../tg-api
-      FunctionName: Devops-tg_create_alarm
-      Handler: tg_create_alarm.lambda_handler
+      CodeUri: .
+      FunctionName: Devops-tg_response_time_alarm_create
+      Handler: tg_response_time_alarm_create.lambda_handler
       Policies:
         - Statement:
             - Effect: Allow
@@ -81,10 +83,10 @@ Resources:
                 - ssm:*
               Resource: "*"
       Events:
-        CreateAlarmAPI:
+        CreateResponseTimeAlarmAPI:
           Type: Api
           Properties:
-            Path: /create-alarm
+            Path: /tg/response-time
             Method: post
             RestApiId:
               Ref: TGApi
@@ -92,6 +94,80 @@ Resources:
         Variables:
           ROLE_NAME: !Ref CrossAccRoleName
           REGION: !Ref "AWS::Region"
+
+  # Request Count Alarm Function
+  TGRequestCountAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      FunctionName: Devops-tg_request_count_alarm_create
+      Handler: tg_request_count_alarm_create.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - elasticloadbalancing:*
+                - ssm:*
+              Resource: "*"
+      Events:
+        CreateRequestCountAlarmAPI:
+          Type: Api
+          Properties:
+            Path: /tg/request-count
+            Method: post
+            RestApiId:
+              Ref: TGApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+
+  # Unhealthy Host Alarm Function
+  TGUnhealthyHostAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      FunctionName: Devops-tg_unhealthy_host_alarm_create
+      Handler: tg_unhealthy_host_alarm_create.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+                - cloudwatch:*
+                - elasticloadbalancing:*
+                - ssm:*
+              Resource: "*"
+      Events:
+        CreateUnhealthyHostAlarmAPI:
+          Type: Api
+          Properties:
+            Path: /tg/unhealthy-hosts
+            Method: post
+            RestApiId:
+              Ref: TGApi
+      Environment:
+        Variables:
+          ROLE_NAME: !Ref CrossAccRoleName
+          REGION: !Ref "AWS::Region"
+
+  # Health Check Function
+  # TGHealthCheckFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: .
+  #     FunctionName: Devops-tg_health_check
+  #     Handler: health_check.lambda_handler
+  #     Events:
+  #       HealthCheckAPI:
+  #         Type: Api
+  #         Properties:
+  #           Path: /health
+  #           Method: get
+  #           RestApiId:
+  #             # Ref: TGApi
 
   TGApiId:
     Type: AWS::SSM::Parameter

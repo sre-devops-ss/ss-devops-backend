@@ -22,4 +22,3 @@ Resources:
       ApiMappingKey: "api/asg"
       DomainName: !Ref Customdomain
       Stage: !Ref Environment
-      

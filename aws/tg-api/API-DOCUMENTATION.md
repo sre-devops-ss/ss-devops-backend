@@ -1,8 +1,8 @@
-# Target Group API Documentation
+# Target Group Monitoring API Documentation
 
 ## Overview
 
-This API provides a Lambda-based solution for monitoring AWS Target Group metrics and setting up alarms with customizable thresholds for Application Load Balancer target group monitoring.
+This API provides a modular Lambda-based solution for monitoring AWS Application Load Balancer (ALB) Target Group metrics including response time, request count, and unhealthy host count. Each metric type has its own dedicated endpoint for maximum flexibility.
 
 ## Base URL
 
@@ -12,76 +12,195 @@ https://{api-gateway-id}.execute-api.{region}.amazonaws.com/{environment}
 
 ## Endpoints
 
-### 1. Create Target Group Alarm
+### 1. Response Time Alarm Creation
 
-**POST** `/create-alarm`
+**POST** `/tg/response-time`
 
-Creates CloudWatch alarms for Target Group monitoring.
+Creates CloudWatch alarms for target response time in Application Load Balancer target groups.
 
 **Request Body:**
 ```json
 {
-  "load_balancer_name": "app/my-alb/50dc6c495c0c9188",
-  "target_group_name": "targetgroup/my-tg/73e2d6bc24d8a067",
+  "load_balancer_name": "my-alb",
+  "target_group_name": "my-target-group",
   "config": {
-    "response_time_threshold": 1.0,
-    "request_count_threshold": 1000,
-    "unhealthy_threshold": 1,
-    "target_5xx_threshold": 10,
+    "threshold": 5.0,
     "period": 60,
     "evaluation_periods": 1,
-    "alarm_actions": []
+    "alarm_actions": ["arn:aws:sns:region:account:topic-name"]
   }
 }
 ```
 
-**Parameters:**
-- `load_balancer_name` (required): Load Balancer name in CloudWatch format (e.g., app/my-alb/50dc6c495c0c9188)
-- `target_group_name` (required): Target Group name in CloudWatch format (e.g., targetgroup/my-tg/73e2d6bc24d8a067)
-- `config` (optional): Object with thresholds and configuration
+**Response Example:**
+```json
+{
+  "message": "Response time alarm created"
+}
+```
 
-**Configuration Options:**
-- `response_time_threshold` (default: 1.0): Response time threshold in seconds
-- `request_count_threshold` (default: 1000): Request count threshold
-- `unhealthy_threshold` (default: 1): Unhealthy host count threshold
-- `target_5xx_threshold` (default: 10): 5xx errors threshold
-- `period` (default: 60): Evaluation period in seconds
-- `evaluation_periods` (default: 1): Number of periods to evaluate
-- `alarm_actions` (default: []): Array of SNS topic ARNs for notifications
+### 2. Request Count Alarm Creation
+
+**POST** `/tg/request-count`
+
+Creates CloudWatch alarms for request count in Application Load Balancer target groups.
+
+**Request Body:**
+```json
+{
+  "load_balancer_name": "my-alb",
+  "target_group_name": "my-target-group",
+  "config": {
+    "threshold": 1000,
+    "period": 60,
+    "evaluation_periods": 1,
+    "alarm_actions": ["arn:aws:sns:region:account:topic-name"]
+  }
+}
+```
 
 **Response Example:**
 ```json
 {
-  "message": "Target Group alarms created"
+  "message": "Request count alarm created"
 }
 ```
 
-## Alarms Created
+### 3. Unhealthy Host Alarm Creation
 
-The API creates the following CloudWatch alarms:
+**POST** `/tg/unhealthy-hosts`
 
-1. **{target_group_name}-response-time**: Monitors target response time
-2. **{target_group_name}-request-count**: Monitors request count
-3. **{target_group_name}-unhealthy-hosts**: Monitors unhealthy host count
-4. **{target_group_name}-5xx-errors**: Monitors 5xx errors from targets
+Creates CloudWatch alarms for unhealthy host count in Application Load Balancer target groups.
+
+**Request Body:**
+```json
+{
+  "load_balancer_name": "my-alb",
+  "target_group_name": "my-target-group",
+  "config": {
+    "threshold": 1,
+    "period": 60,
+    "evaluation_periods": 1,
+    "alarm_actions": ["arn:aws:sns:region:account:topic-name"]
+  }
+}
+```
+
+**Response Example:**
+```json
+{
+  "message": "Unhealthy host alarm created"
+}
+```
+
+### 4. Health Check
+
+**GET** `/health`
+
+Returns the health status of the API.
+
+**Response Example:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+## Request Parameters
+
+### Common Parameters
+- `load_balancer_name` (required): Name of the Application Load Balancer
+- `target_group_name` (required): Name of the Target Group
+- `config` (required): Configuration object with thresholds and settings
+
+### Configuration Options
+- `threshold` (required): Threshold value for the alarm
+- `period` (optional, default: 60): Evaluation period in seconds
+- `evaluation_periods` (optional, default: 1): Number of evaluation periods
+- `alarm_actions` (optional): Array of SNS topic ARNs for notifications
+
+## Sample Events
+
+### Response Time Alarm Creation
+```json
+{
+  "load_balancer_name": "prod-alb",
+  "target_group_name": "web-servers",
+  "config": {
+    "threshold": 3.0,
+    "period": 300,
+    "evaluation_periods": 2
+  }
+}
+```
+
+### Request Count Alarm Creation
+```json
+{
+  "load_balancer_name": "prod-alb",
+  "target_group_name": "web-servers",
+  "config": {
+    "threshold": 500,
+    "period": 60,
+    "evaluation_periods": 1
+  }
+}
+```
+
+### Unhealthy Host Alarm Creation
+```json
+{
+  "load_balancer_name": "prod-alb",
+  "target_group_name": "web-servers",
+  "config": {
+    "threshold": 2,
+    "period": 300,
+    "evaluation_periods": 2
+  }
+}
+```
 
 ## Error Responses
 
-- **400**: Invalid parameters or missing required fields
+- **400**: Missing required parameters
 - **500**: Internal server error
 
 **Error Example:**
 ```json
 {
-  "error": "Invalid parameters"
+  "error": "Missing required parameter: load_balancer_name"
 }
 ```
 
-## Prerequisites
+## Lambda Functions
 
-- Required IAM permissions for CloudWatch and Application Load Balancer monitoring
-- Target Group and Load Balancer must exist
-- CloudWatch permissions
+The API creates the following Lambda functions:
+1. `Devops-tg_response_time_alarm_create` - Response time alarm creation
+2. `Devops-tg_request_count_alarm_create` - Request count alarm creation
+3. `Devops-tg_unhealthy_host_alarm_create` - Unhealthy host alarm creation
+4. `Devops-tg_health_check` - Health check endpoint
 
-## SSM Parameter
-- The API Gateway ID is stored in `/ss/backend/tg-monitoring-api/id`. 
+## CloudWatch Metrics
+
+### Response Time
+- **Namespace**: `AWS/ApplicationELB`
+- **Metric**: `TargetResponseTime`
+- **Statistic**: Average
+- **Unit**: Seconds
+
+### Request Count
+- **Namespace**: `AWS/ApplicationELB`
+- **Metric**: `RequestCount`
+- **Statistic**: Sum
+- **Unit**: Count
+
+### Unhealthy Host Count
+- **Namespace**: `AWS/ApplicationELB`
+- **Metric**: `UnHealthyHostCount`
+- **Statistic**: Average
+- **Unit**: Count
+
+## SSM Parameters
+- The API Gateway ID is stored in `/ss/backend/tg-monitoring-api/id`
+- Cross-account role name is retrieved from `/ss/backend/cross-account-role-name` 

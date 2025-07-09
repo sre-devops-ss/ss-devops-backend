@@ -2,7 +2,7 @@
 
 ## Overview
 
-This API provides a Lambda-based solution for monitoring AWS Auto Scaling Group (ASG) metrics and setting up alarms with customizable thresholds for both instance-level and scaling-level monitoring.
+This API provides a modular Lambda-based solution for monitoring AWS Auto Scaling Group (ASG) metrics including CPU utilization, memory utilization, and scaling activities. Each metric type has its own dedicated endpoint for maximum flexibility.
 
 ## Base URL
 
@@ -12,130 +12,181 @@ https://{api-gateway-id}.execute-api.{region}.amazonaws.com/{environment}
 
 ## Endpoints
 
-### 1. Create ASG Alarm
+### 1. CPU Utilization Alarm Creation
 
-**POST** `/create-alarm`
+**POST** `/alarms/cpu`
 
-Creates CloudWatch alarms for ASG instances and scaling activities.
+Creates CloudWatch alarms for CPU utilization on EC2 instances within an Auto Scaling Group.
 
 **Request Body:**
 ```json
 {
-  "event_type": "instance",
   "instance_ids": ["i-1234567890abcdef0", "i-0987654321fedcba0"],
-  "config": {
-    "cpu_threshold": 80,
-    "memory_threshold": 85,
-    "period": 60,
-    "evaluation_periods": 1,
-    "alarm_actions": []
-  }
+  "cpu_threshold": 80,
+  "period": 60,
+  "evaluation_periods": 1,
+  "alarm_actions": ["arn:aws:sns:region:account:topic-name"]
 }
 ```
-
-**For Scaling Alarms:**
-```json
-{
-  "event_type": "scaling",
-  "asg_name": "my-asg-name",
-  "config": {
-    "scaling_threshold": 1,
-    "period": 60,
-    "evaluation_periods": 1,
-    "alarm_actions": []
-  }
-}
-```
-
-**Parameters:**
-- `event_type` (required): Either "instance" or "scaling"
-- `instance_ids` (required for instance alarms): Array of EC2 instance IDs
-- `asg_name` (required for scaling alarms): Name of the Auto Scaling Group
-- `config` (optional): Object with thresholds and configuration
-
-**Configuration Options:**
-- `cpu_threshold` (default: 80): CPU utilization percentage threshold
-- `memory_threshold` (default: 85): Memory utilization percentage threshold
-- `scaling_threshold` (default: 1): Minimum number of in-service instances
-- `period` (default: 60): Evaluation period in seconds
-- `evaluation_periods` (default: 1): Number of periods to evaluate
-- `alarm_actions` (default: []): Array of SNS topic ARNs for notifications
 
 **Response Example:**
 ```json
 {
-  "message": "Alarms created"
+  "message": "CPU alarms created"
 }
 ```
+
+### 2. Memory Utilization Alarm Creation
+
+**POST** `/alarms/memory`
+
+Creates CloudWatch alarms for memory utilization on EC2 instances within an Auto Scaling Group.
+
+**Request Body:**
+```json
+{
+  "instance_ids": ["i-1234567890abcdef0", "i-0987654321fedcba0"],
+  "memory_threshold": 85,
+  "period": 60,
+  "evaluation_periods": 1,
+  "alarm_actions": ["arn:aws:sns:region:account:topic-name"]
+}
+```
+
+**Response Example:**
+```json
+{
+  "message": "Memory alarms created"
+}
+```
+
+### 3. Scaling Activity Alarm Creation
+
+**POST** `/alarms/scaling`
+
+Creates CloudWatch alarms for Auto Scaling Group scaling activities.
+
+**Request Body:**
+```json
+{
+  "asg_name": "my-asg-name",
+  "scaling_threshold": 1,
+  "period": 60,
+  "evaluation_periods": 1,
+  "alarm_actions": ["arn:aws:sns:region:account:topic-name"]
+}
+```
+
+**Response Example:**
+```json
+{
+  "message": "Scaling alarm created"
+}
+```
+
+### 4. Health Check
+
+**GET** `/health`
+
+Returns the health status of the API.
+
+**Response Example:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+## Request Parameters
+
+### CPU and Memory Alarm Parameters
+- `instance_ids` (required): Array of EC2 instance IDs to monitor
+- `cpu_threshold` (optional, default: 80): CPU utilization percentage threshold
+- `memory_threshold` (optional, default: 85): Memory utilization percentage threshold
+- `period` (optional, default: 60): Evaluation period in seconds
+- `evaluation_periods` (optional, default: 1): Number of evaluation periods
+- `alarm_actions` (optional): Array of SNS topic ARNs for notifications
+
+### Scaling Alarm Parameters
+- `asg_name` (required): Name of the Auto Scaling Group
+- `scaling_threshold` (optional, default: 1): Minimum number of in-service instances
+- `period` (optional, default: 60): Evaluation period in seconds
+- `evaluation_periods` (optional, default: 1): Number of evaluation periods
+- `alarm_actions` (optional): Array of SNS topic ARNs for notifications
 
 ## Sample Events
 
-### Instance Alarms Event
+### CPU Alarm Creation
 ```json
 {
-  "event_type": "instance",
-  "instance_ids": ["i-1234567890abcdef0", "i-0987654321fedcba0"],
-  "config": {
-    "cpu_threshold": 80,
-    "memory_threshold": 85,
-    "period": 60,
-    "evaluation_periods": 1,
-    "alarm_actions": ["arn:aws:sns:us-east-1:123456789012:MyTopic"]
-  }
+  "instance_ids": ["i-1234567890abcdef0"],
+  "cpu_threshold": 75,
+  "period": 300,
+  "evaluation_periods": 2
 }
 ```
 
-### Scaling Alarms Event
+### Memory Alarm Creation
 ```json
 {
-  "event_type": "scaling",
-  "asg_name": "my-production-asg",
-  "config": {
-    "scaling_threshold": 2,
-    "period": 60,
-    "evaluation_periods": 1,
-    "alarm_actions": ["arn:aws:sns:us-east-1:123456789012:MyTopic"]
-  }
+  "instance_ids": ["i-1234567890abcdef0", "i-0987654321fedcba0"],
+  "memory_threshold": 90,
+  "period": 60,
+  "evaluation_periods": 1
+}
+```
+
+### Scaling Alarm Creation
+```json
+{
+  "asg_name": "production-asg",
+  "scaling_threshold": 2,
+  "period": 300,
+  "evaluation_periods": 2
 }
 ```
 
 ## Error Responses
 
-- **400**: Invalid event_type or missing required parameters
+- **400**: Missing required parameters
 - **500**: Internal server error
 
 **Error Example:**
 ```json
 {
-  "error": "Invalid event_type"
+  "error": "Missing required parameter: instance_ids"
 }
 ```
 
-## SSM Parameter
-- The API Gateway ID is stored in `/ss/backend/asg-monitoring-api/id`.
+## Lambda Functions
 
-## Alarms Created
+The API creates the following Lambda functions:
+1. `Devops-asg_cpu_alarm_create` - CPU utilization alarm creation
+2. `Devops-asg_memory_alarm_create` - Memory utilization alarm creation
+3. `Devops-asg_scaling_alarm_create` - Scaling activity alarm creation
+4. `Devops-asg_health_check` - Health check endpoint
 
-The API creates different types of CloudWatch alarms based on the event_type:
+## CloudWatch Metrics
 
-### Instance Alarms (event_type: "instance")
-- **{instance_id}-cpu-utilization**: Monitors CPU utilization for each instance
-- **{instance_id}-memory-utilization**: Monitors memory utilization for each instance (requires CloudWatch Agent)
+### CPU Utilization
+- **Namespace**: `AWS/EC2`
+- **Metric**: `CPUUtilization`
+- **Statistic**: Average
+- **Unit**: Percent
 
-### Scaling Alarms (event_type: "scaling")
-- **{asg_name}-scaling-activity**: Monitors the number of in-service instances in the ASG
+### Memory Utilization
+- **Namespace**: `CWAgent`
+- **Metric**: `mem_used_percent`
+- **Statistic**: Average
+- **Unit**: Percent
 
-## Prerequisites
+### Scaling Activity
+- **Namespace**: `AWS/AutoScaling`
+- **Metric**: `GroupInServiceInstances`
+- **Statistic**: Average
+- **Unit**: Count
 
-### For Memory Monitoring
-To enable memory utilization monitoring, ensure that:
-1. CloudWatch Agent is installed on the EC2 instances
-2. The agent is configured to collect memory metrics
-3. The agent is running and sending data to CloudWatch
-
-### Required IAM Permissions
-The Lambda function requires the following permissions:
-- `cloudwatch:PutMetricAlarm`
-- `autoscaling:DescribeAutoScalingGroups`
-- `ec2:DescribeInstances`
-- `sts:AssumeRole` (for cross-account access) 
+## SSM Parameters
+- The API Gateway ID is stored in `/ss/backend/asg-monitoring-api/id`
+- Cross-account role name is retrieved from `/ss/backend/cross-account-role-name` 
