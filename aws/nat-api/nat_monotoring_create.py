@@ -8,6 +8,12 @@ from utils.cross_account import CrossAccountClient
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+headers= {
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': f"*",
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+}
+
 class NATAlarmCreator:
     def __init__(self, account_client):
         self.cloudwatch = account_client.get_client("cloudwatch")
@@ -87,6 +93,7 @@ def lambda_handler(event, context):
 
         return {
             'statusCode': 200 if success else 500,
+            'headers': headers,
             'body': json.dumps({'message': 'Alarm created' if success else 'Failed to create alarm'})
         }
 
@@ -94,5 +101,6 @@ def lambda_handler(event, context):
         logger.error(f"Unhandled exception: {str(e)}")
         return {
             'statusCode': 500,
+            'headers': headers,
             'body': json.dumps({'error': str(e)})
         }

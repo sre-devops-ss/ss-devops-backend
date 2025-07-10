@@ -3,6 +3,12 @@ import json
 import os
 from utils.cross_account import CrossAccountClient
 
+headers= {
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': f"*",
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+}
+
 def create_bandwidth_alarm(cloudwatch, instance_id, threshold, alarm_actions):
     cloudwatch.put_metric_alarm(
         AlarmName=f"{instance_id}-network-out",
@@ -44,5 +50,6 @@ def lambda_handler(event, context):
 
     return {
         "statusCode": 200,
+        "headers": headers,
         "body": json.dumps({"message": "Bandwidth alarms created"})
     }

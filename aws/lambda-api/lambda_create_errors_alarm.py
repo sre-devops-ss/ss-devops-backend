@@ -6,7 +6,11 @@ from utils.cross_account import CrossAccountClient
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
+headers= {
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': f"*",
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+}
 def lambda_handler(event, context):
     try:
         body = json.loads(event.get('body', '{}'))
@@ -56,6 +60,7 @@ def lambda_handler(event, context):
         logger.info(f"Errors alarm created for: {function_name}")
         return {
             'statusCode': 200,
+            'headers': headers,
             'body': json.dumps({'message': f'Errors alarm created for {function_name}'})
         }
 
@@ -63,5 +68,6 @@ def lambda_handler(event, context):
         logger.error(f"Error creating alarm: {str(e)}")
         return {
             'statusCode': 500,
+            'headers': headers,
             'body': json.dumps({'error': str(e)})
         }

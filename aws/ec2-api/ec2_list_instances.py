@@ -6,6 +6,7 @@ headers= {
     'Access-Control-Allow-Origin': f"*",
     'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
 }
+
 def lambda_handler(event, context):
     try:
         body = json.loads(event['body'])

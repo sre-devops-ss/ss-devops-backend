@@ -6,6 +6,11 @@ from utils.cross_account import CrossAccountClient
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+headers= {
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': f"*",
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+}
 
 def lambda_handler(event, context):
     try:
@@ -15,7 +20,6 @@ def lambda_handler(event, context):
         account_id = body['account_id']
         region = body.get('region', os.environ.get("AWS_REGION", "us-east-1"))
 
-        # Assume role for cross-account access
         role_arn = f"arn:aws:iam::{account_id}:role/{os.environ['ROLE_NAME']}"
         client = CrossAccountClient(account_id, role_arn, region)
         client.assume_role()
@@ -24,7 +28,6 @@ def lambda_handler(event, context):
         cloudwatch = client.get_client('cloudwatch')
         ssm = client.get_client('ssm')
 
-        # Fetch SNS topic ARN from SSM
         sns_topic_arn = ssm.get_parameter(
             Name="/devops-backend/snstopic/arn",
             WithDecryption=False
@@ -34,7 +37,6 @@ def lambda_handler(event, context):
         if sns_topic_arn not in alarm_actions:
             alarm_actions.append(sns_topic_arn)
 
-        # Define metric filter
         log_group = f"/aws/lambda/{function_name}"
         metric_namespace = "LambdaLogs"
         metric_name = f"{function_name}-log-errors"
@@ -50,7 +52,6 @@ def lambda_handler(event, context):
             }]
         )
 
-        # Create CloudWatch alarm on the filtered metric
         cloudwatch.put_metric_alarm(
             AlarmName=f"{function_name}-log-error-alarm",
             MetricName=metric_name,
@@ -67,6 +68,7 @@ def lambda_handler(event, context):
         logger.info(f"Log error alarm created for: {function_name}")
         return {
             'statusCode': 200,
+            'headers': headers,
             'body': json.dumps({'message': 'Log error alarm created'})
         }
 
@@ -74,5 +76,6 @@ def lambda_handler(event, context):
         logger.error(f"Error: {str(e)}")
         return {
             'statusCode': 500,
+            'headers': headers,
             'body': json.dumps({'error': str(e)})
         }

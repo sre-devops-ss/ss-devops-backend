@@ -3,6 +3,11 @@ import json
 import logging
 import os
 
+headers= {
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': f"*",
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+} 
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -57,8 +62,8 @@ def lambda_handler(event, context):
         for instance_id in instance_ids:
             create_cpu_alarm(instance_id, config, alarm_actions)
 
-        return {'statusCode': 200, 'body': json.dumps({'message': 'CPU alarms created'})}
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'message': 'CPU alarms created'})}
 
     except Exception as e:
         logger.error(str(e))
-        return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
+        return {'statusCode': 500, 'headers': headers, 'body': json.dumps({'error': str(e)})}

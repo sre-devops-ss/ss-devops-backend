@@ -7,6 +7,12 @@ from utils.cross_account import CrossAccountClient
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+headers= {
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': f"*",
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+}
+
 def lambda_handler(event, context):
     try:
         body = json.loads(event.get('body', '{}'))
@@ -15,12 +21,10 @@ def lambda_handler(event, context):
         account_id = body['account_id']
         region = body.get("region", os.environ.get("AWS_REGION", "us-east-1"))
 
-        # Assume cross-account role
         role_arn = f"arn:aws:iam::{account_id}:role/{os.environ['ROLE_NAME']}"
         client = CrossAccountClient(account_id, role_arn, region)
         client.assume_role()
 
-        # Get SNS topic ARN from SSM
         ssm = client.get_client("ssm")
         sns_topic_arn = ssm.get_parameter(
             Name="/devops-backend/snstopic/arn",
@@ -31,6 +35,7 @@ def lambda_handler(event, context):
         alarm_actions = config.get('alarm_actions', [])
         if sns_topic_arn not in alarm_actions:
             alarm_actions.append(sns_topic_arn)
+        # Get SNS topic ARN from SSM
 
         # Get CloudWatch client
         cloudwatch = client.get_client("cloudwatch")
@@ -54,6 +59,7 @@ def lambda_handler(event, context):
         logger.info(f"Duration alarm created for: {function_name}")
         return {
             'statusCode': 200,
+            'headers': headers,
             'body': json.dumps({'message': f'Duration alarm created for {function_name}'})
         }
 
@@ -61,5 +67,6 @@ def lambda_handler(event, context):
         logger.error(f"Error creating alarm: {str(e)}")
         return {
             'statusCode': 500,
+            'headers': headers,
             'body': json.dumps({'error': str(e)})
         }
