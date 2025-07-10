@@ -1,13 +1,13 @@
 import boto3
 import json
 import logging
-
+from utils.cross_account import CrossAccountClient
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 cloudwatch = boto3.client("cloudwatch")
 
-def create_scaling_alarm(asg_name, config):
+def create_scaling_alarm(asg_name, config, alarm_actions):
     dimensions = [{'Name': 'AutoScalingGroupName', 'Value': asg_name}]
     cloudwatch.put_metric_alarm(
         AlarmName=f"{asg_name}-scaling-activity",
@@ -20,7 +20,7 @@ def create_scaling_alarm(asg_name, config):
         ComparisonOperator="LessThanThreshold",
         AlarmDescription="ASG may be under-scaled",
         Dimensions=dimensions,
-        AlarmActions=config['alarm_actions']
+        AlarmActions=alarm_actions
     )
     logger.info(f"Scaling alarm created for ASG: {asg_name}")
 
@@ -29,14 +29,31 @@ def lambda_handler(event, context):
     try:
         body = json.loads(event.get('body', '{}'))
         asg_name = body['asg_name']
+        account_id = body['account_id']
+        region = body.get("region", os.environ.get("AWS_REGION"))
         config = {
             'scaling_threshold': body.get('scaling_threshold', 1),
             'period': body.get('period', 60),
             'evaluation_periods': body.get('evaluation_periods', 1),
             'alarm_actions': body.get('alarm_actions', [])
         }
+        role_arn = f"arn:aws:iam::{account_id}:role/{os.environ['ROLE_NAME']}"
+        client = CrossAccountClient(account_id, role_arn, region)
+        client.assume_role()
 
-        create_scaling_alarm(asg_name, config)
+        ssm = client.get_client("ssm")
+        sns_topic_arn = ssm.get_parameter(
+            Name="/devops-backend/snstopic/arn",
+            WithDecryption=False
+        )["Parameter"]["Value"]
+
+        if sns_topic_arn not in config["alarm_actions"]:
+            config["alarm_actions"].append(sns_topic_arn)
+
+        cloudwatch = client.get_client("cloudwatch")
+
+
+        create_scaling_alarm(asg_name, config, config["alarm_actions"])
 
         return {'statusCode': 200, 'body': json.dumps({'message': 'Scaling alarm created'})}
 

@@ -1,18 +1,44 @@
 import boto3
 import json
 import logging
+import os
+from utils.cross_account import CrossAccountClient
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-cloudwatch = boto3.client('cloudwatch')
 
 def lambda_handler(event, context):
     try:
         body = json.loads(event.get('body', '{}'))
         function_name = body['function_name']
         config = body.get('config', {})
+        account_id = body.get('account_id')
+        region = body.get("region", os.environ.get("AWS_REGION", "us-east-1"))
 
+        role_arn = None
+        cloudwatch = None
+        alarm_actions = config.get('alarm_actions', [])
+
+        if account_id:
+            role_arn = f"arn:aws:iam::{account_id}:role/{os.environ['ROLE_NAME']}"
+            client = CrossAccountClient(account_id, role_arn, region)
+            client.assume_role()
+
+            # Fetch SNS topic ARN from SSM in target account
+            ssm = client.get_client("ssm")
+            sns_topic_arn = ssm.get_parameter(
+                Name="/devops-backend/snstopic/arn",
+                WithDecryption=False
+            )["Parameter"]["Value"]
+
+            if sns_topic_arn not in alarm_actions:
+                alarm_actions.append(sns_topic_arn)
+
+            cloudwatch = client.get_client("cloudwatch")
+        else:
+            cloudwatch = boto3.client('cloudwatch', region_name=region)
+
+        # Create CloudWatch alarm
         cloudwatch.put_metric_alarm(
             AlarmName=f"{function_name}-errors-alarm",
             MetricName="Errors",
@@ -24,17 +50,17 @@ def lambda_handler(event, context):
             ComparisonOperator="GreaterThanThreshold",
             AlarmDescription="Lambda has invocation errors",
             Dimensions=[{"Name": "FunctionName", "Value": function_name}],
-            AlarmActions=config.get('alarm_actions', [])
+            AlarmActions=alarm_actions
         )
 
         logger.info(f"Errors alarm created for: {function_name}")
         return {
             'statusCode': 200,
-            'body': json.dumps({'message': 'Errors alarm created'})
+            'body': json.dumps({'message': f'Errors alarm created for {function_name}'})
         }
 
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
+        logger.error(f"Error creating alarm: {str(e)}")
         return {
             'statusCode': 500,
             'body': json.dumps({'error': str(e)})

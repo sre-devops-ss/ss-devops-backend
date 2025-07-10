@@ -1,13 +1,14 @@
 import boto3
 import json
 import logging
+from utils.cross_account import CrossAccountClient
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 cloudwatch = boto3.client("cloudwatch")
 
-def create_memory_alarm(instance_id, config):
+def create_memory_alarm(instance_id, config, alarm_actions):
     dimensions = [{'Name': 'InstanceId', 'Value': instance_id}]
     cloudwatch.put_metric_alarm(
         AlarmName=f"{instance_id}-memory-utilization",
@@ -20,7 +21,7 @@ def create_memory_alarm(instance_id, config):
         ComparisonOperator="GreaterThanThreshold",
         AlarmDescription="High memory utilization",
         Dimensions=dimensions,
-        AlarmActions=config['alarm_actions']
+        AlarmActions=alarm_actions
     )
     logger.info(f"Memory alarm created for instance: {instance_id}")
 
@@ -29,6 +30,8 @@ def lambda_handler(event, context):
     try:
         body = json.loads(event.get('body', '{}'))
         instance_ids = body.get('instance_ids', [])
+        account_id = body['account_id']
+        region = body.get("region", os.environ.get("AWS_REGION"))
         config = {
             'memory_threshold': body.get('memory_threshold', 85),
             'period': body.get('period', 60),
@@ -36,8 +39,22 @@ def lambda_handler(event, context):
             'alarm_actions': body.get('alarm_actions', [])
         }
 
+        role_arn = f"arn:aws:iam::{account_id}:role/{os.environ['ROLE_NAME']}"
+        client = CrossAccountClient(account_id, role_arn, region)
+        client.assume_role()
+        ssm = client.get_client("ssm")
+        sns_topic_arn = ssm.get_parameter(
+            Name="/devops-backend/snstopic/arn",
+            WithDecryption=False
+        )["Parameter"]["Value"]
+
+        if sns_topic_arn not in config["alarm_actions"]:
+            config["alarm_actions"].append(sns_topic_arn)
+
+        cloudwatch = client.get_client("cloudwatch")
+
         for instance_id in instance_ids:
-            create_memory_alarm(instance_id, config)
+            create_memory_alarm(instance_id, config, config["alarm_actions"])
 
         return {'statusCode': 200, 'body': json.dumps({'message': 'Memory alarms created'})}
 

@@ -1,47 +1,67 @@
 import boto3
 import json
-
-budgets = boto3.client('budgets')
+import os
+from utils.cross_account import CrossAccountClient
 
 def lambda_handler(event, context):
-    budget_name = event.get('budget_name', 'Monthly-Budget')
-    account_id = event.get('account_id')
-    sns_arn = event.get('sns_topic_arn')
+    body = json.loads(event.get("body", "{}"))
+    budget_name = body.get("budget_name", "MonthlyCostBudget")
+    amount = body.get("amount", 100)  # Budget in USD
+    account_id = body.get("account_id")
+    region = body.get("region", os.environ.get("AWS_REGION"))
 
-    budget = {
-        'BudgetName': budget_name,
-        'BudgetLimit': {
-            'Amount': '100',
-            'Unit': 'USD'
-        },
-        'TimeUnit': 'MONTHLY',
-        'BudgetType': 'COST',
-        'CostFilters': {},
-        'TimePeriod': {
-            'Start': '2024-01-01T00:00:00Z',
-            'End': '2087-12-31T00:00:00Z'
-        }
-    }
+    # Assume cross-account role
+    role_arn = f"arn:aws:iam::{account_id}:role/{os.environ['ROLE_NAME']}"
+    client = CrossAccountClient(account_id, role_arn, region)
+    client.assume_role()
 
-    notification = {
-        'Notification': {
-            'NotificationType': 'ACTUAL',
-            'Threshold': 80,
-            'ThresholdType': 'PERCENTAGE',
-            'ComparisonOperator': 'GREATER_THAN'
+    ssm = client.get_client("ssm")
+    sns_topic_arn = ssm.get_parameter(
+        Name="/devops-backend/snstopic/arn",
+        WithDecryption=False
+    )["Parameter"]["Value"]
+
+    alarm_actions = [sns_topic_arn]
+
+    budgets = client.get_client("budgets")
+
+    response = budgets.create_budget(
+        AccountId=account_id,
+        Budget={
+            "BudgetName": budget_name,
+            "BudgetLimit": {
+                "Amount": str(amount),
+                "Unit": "USD"
+            },
+            "CostFilters": {},
+            "CostTypes": {
+                "IncludeTax": True,
+                "IncludeSubscription": True,
+                "UseBlended": False,
+                "IncludeRefund": False
+            },
+            "TimeUnit": "MONTHLY",
+            "BudgetType": "COST"
         },
-        'Subscribers': [
+        NotificationsWithSubscribers=[
             {
-                'SubscriptionType': 'SNS',
-                'Address': sns_arn
+                "Notification": {
+                    "NotificationType": "ACTUAL",
+                    "ComparisonOperator": "GREATER_THAN",
+                    "Threshold": 80,
+                    "ThresholdType": "PERCENTAGE"
+                },
+                "Subscribers": [
+                    {
+                        "SubscriptionType": "SNS",
+                        "Address": sns_topic_arn
+                    }
+                ]
             }
         ]
-    }
-
-    budgets.create_budget(AccountId=account_id, Budget=budget)
-    budgets.create_notification(AccountId=account_id, BudgetName=budget_name, Notification=notification['Notification'], Subscribers=notification['Subscribers'])
+    )
 
     return {
-        'statusCode': 200,
-        'body': json.dumps(f"Budget alarm {budget_name} created")
+        "statusCode": 200,
+        "body": json.dumps({"message": "Budget created", "response": response})
     }

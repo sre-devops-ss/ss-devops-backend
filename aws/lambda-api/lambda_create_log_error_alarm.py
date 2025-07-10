@@ -1,24 +1,44 @@
 import boto3
 import json
 import logging
+import os
+from utils.cross_account import CrossAccountClient
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-cloudwatch = boto3.client('cloudwatch')
-logs = boto3.client('logs')
 
 def lambda_handler(event, context):
     try:
         body = json.loads(event.get('body', '{}'))
         function_name = body['function_name']
         config = body.get('config', {})
+        account_id = body['account_id']
+        region = body.get('region', os.environ.get("AWS_REGION", "us-east-1"))
 
+        # Assume role for cross-account access
+        role_arn = f"arn:aws:iam::{account_id}:role/{os.environ['ROLE_NAME']}"
+        client = CrossAccountClient(account_id, role_arn, region)
+        client.assume_role()
+
+        logs = client.get_client('logs')
+        cloudwatch = client.get_client('cloudwatch')
+        ssm = client.get_client('ssm')
+
+        # Fetch SNS topic ARN from SSM
+        sns_topic_arn = ssm.get_parameter(
+            Name="/devops-backend/snstopic/arn",
+            WithDecryption=False
+        )["Parameter"]["Value"]
+
+        alarm_actions = config.get('alarm_actions', [])
+        if sns_topic_arn not in alarm_actions:
+            alarm_actions.append(sns_topic_arn)
+
+        # Define metric filter
         log_group = f"/aws/lambda/{function_name}"
         metric_namespace = "LambdaLogs"
         metric_name = f"{function_name}-log-errors"
 
-        # Create metric filter in logs
         logs.put_metric_filter(
             logGroupName=log_group,
             filterName=f"{function_name}-log-error-filter",
@@ -30,7 +50,7 @@ def lambda_handler(event, context):
             }]
         )
 
-        # Create alarm for the metric
+        # Create CloudWatch alarm on the filtered metric
         cloudwatch.put_metric_alarm(
             AlarmName=f"{function_name}-log-error-alarm",
             MetricName=metric_name,
@@ -41,7 +61,7 @@ def lambda_handler(event, context):
             Threshold=config.get('log_error_threshold', 1),
             ComparisonOperator="GreaterThanThreshold",
             AlarmDescription="Errors found in Lambda logs",
-            AlarmActions=config.get('alarm_actions', [])
+            AlarmActions=alarm_actions
         )
 
         logger.info(f"Log error alarm created for: {function_name}")
