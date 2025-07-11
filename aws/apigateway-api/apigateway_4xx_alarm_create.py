@@ -2,6 +2,7 @@ import json
 import os
 import logging
 from utils.cross_account import CrossAccountClient
+from utils.authenticate_user_role import UserAuthenticator
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -20,6 +21,18 @@ def lambda_handler(event, context):
         account_id = body["account_id"]
         region = body.get("region") or os.environ["REGION"]
         config = body.get("config", {})
+
+        # Authenticate user
+        authenticator = UserAuthenticator()
+        auth_result = authenticator.authenticate_user_account(event)
+        authenticator.close_connection()
+        
+        if auth_result["statusCode"] != 200:
+            return {
+                "statusCode": 403,
+                "headers": headers,
+                "body": json.dumps("user not authorized")
+            }
 
         role_arn = f"arn:aws:iam::{account_id}:role/{os.environ['ROLE_NAME']}"
         client = CrossAccountClient(account_id, role_arn, region)
