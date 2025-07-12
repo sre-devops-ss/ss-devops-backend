@@ -2,6 +2,8 @@ import boto3
 import json
 import os
 from utils.cross_account import CrossAccountClient
+from utils.authenticate_user_role import UserAuthenticator
+
 
 headers= {
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -30,6 +32,17 @@ def lambda_handler(event, context):
     account_id = body['account_id']
     region = body.get("region", os.environ.get("AWS_REGION"))
     threshold = body.get("threshold", 50000000)  # ~50 MB
+
+    authenticator = UserAuthenticator()
+    auth_result = authenticator.authenticate_user_account(event)
+    authenticator.close_connection()
+    
+    if auth_result["statusCode"] != 200:
+        return {
+            "statusCode": 403,
+            "headers": headers,
+            "body": json.dumps("user not authorized")
+        }
 
     role_arn = f"arn:aws:iam::{account_id}:role/{os.environ['ROLE_NAME']}"
     client = CrossAccountClient(account_id, role_arn, region)

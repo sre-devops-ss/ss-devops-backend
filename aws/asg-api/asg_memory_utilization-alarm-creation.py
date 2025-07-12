@@ -2,6 +2,8 @@ import boto3
 import json
 import logging
 from utils.cross_account import CrossAccountClient
+from utils.authenticate_user_role import UserAuthenticator
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -38,6 +40,17 @@ def lambda_handler(event, context):
         instance_ids = body.get('instance_ids', [])
         account_id = body['account_id']
         region = body.get("region", os.environ.get("AWS_REGION"))
+        authenticator = UserAuthenticator()
+        auth_result = authenticator.authenticate_user_account(event)
+        authenticator.close_connection()
+        
+        if auth_result["statusCode"] != 200:
+            return {
+                "statusCode": 403,
+                "headers": headers,
+                "body": json.dumps("user not authorized")
+            }
+            
         config = {
             'memory_threshold': body.get('memory_threshold', 85),
             'period': body.get('period', 60),

@@ -3,6 +3,8 @@ import json
 import os
 from datetime import date
 from utils.cross_account import CrossAccountClient
+from utils.authenticate_user_role import UserAuthenticator
+
 
 headers= {
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -16,6 +18,17 @@ def lambda_handler(event, context):
     region = body.get("region", os.environ.get("AWS_REGION", "us-east-1"))
     threshold = body.get("threshold", 10.0)
     send_alert = body.get("send_alert", True)
+
+    authenticator = UserAuthenticator()
+    auth_result = authenticator.authenticate_user_account(event)
+    authenticator.close_connection()
+    
+    if auth_result["statusCode"] != 200:
+        return {
+            "statusCode": 403,
+            "headers": headers,
+            "body": json.dumps("user not authorized")
+        }
 
     role_arn = f"arn:aws:iam::{account_id}:role/{os.environ['ROLE_NAME']}"
     client = CrossAccountClient(account_id, role_arn, region)

@@ -4,6 +4,7 @@ import boto3
 import logging
 
 from utils.cross_account import CrossAccountClient
+from utils.authenticate_user_role import UserAuthenticator
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

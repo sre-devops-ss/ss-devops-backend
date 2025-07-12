@@ -1,4 +1,6 @@
 import boto3, json, logging
+from utils.authenticate_user_role import UserAuthenticator
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -16,6 +18,17 @@ def lambda_handler(event, context):
         tg = body["target_group_name"]
         cfg = body["config"]
         dimensions = [{"Name": "TargetGroup", "Value": tg}, {"Name": "LoadBalancer", "Value": lb}]
+
+        authenticator = UserAuthenticator()
+        auth_result = authenticator.authenticate_user_account(event)
+        authenticator.close_connection()
+        
+        if auth_result["statusCode"] != 200:
+            return {
+                "statusCode": 403,
+                "headers": headers,
+                "body": json.dumps("user not authorized")
+            }
 
         cloudwatch.put_metric_alarm(
             AlarmName=f"{tg}-unhealthy-hosts",

@@ -1,6 +1,7 @@
 import boto3
 import json
-import logging
+import loggingfrom utils.authenticate_user_role import UserAuthenticator
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -88,6 +89,17 @@ def lambda_handler(event, context):
         lb_name = body['load_balancer_name']     
         tg_name = body['target_group_name']       
         config = body.get('config', {})
+
+        authenticator = UserAuthenticator()
+        auth_result = authenticator.authenticate_user_account(event)
+        authenticator.close_connection()
+        
+        if auth_result["statusCode"] != 200:
+            return {
+                "statusCode": 403,
+                "headers": headers,
+                "body": json.dumps("user not authorized")
+            }
 
         default_config = {
             'response_time_threshold': 1.0,
