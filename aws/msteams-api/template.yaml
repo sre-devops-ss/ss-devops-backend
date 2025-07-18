@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Deplyment for Lambdas with common auth
+Parameters:
+  Customdomain:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/devops-backend/api/custom_domain"
+
+  Environment:
+    Type: String
+    Default: "dev"
+  Domain:
+    Type: String
+    Default: "*"
+#  LambdaLayerARN:
+#    Type: AWS::SSM::Parameter::Value<String>
+#    Default: /OT/Ostrum/Lambda/Layer/ARN
+
+Globals:
+  Function:
+    Runtime: python3.10
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
+
+
+Resources:
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "teams-api"
+      StageName: !Ref Environment
+      # Auth:
+      #   DefaultAuthorizer: MyCognitoAuthorizer
+      #   Authorizers:
+      #     MyCognitoAuthorizer:
+      #       UserPoolArn:
+      #         - !Ref PdUserPoolArn
+      #         - !Ref OtUserPoolArn
+
+  VandalayNotify:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: vandalay_notify.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      FunctionName: Devops-vandalay_notify
+      Description: To send  vandalay_notify
+      CodeUri: ../msteams-api
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Method: post
+            Path: /vandalay
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          DOMAIN: { Ref: Domain}
+
+      Policies:
+        - VPCAccessPolicy: {}
+        - Statement:
+            - Sid: SSMGetParameterPolicy
+              Effect: Allow
+              Action:
+                - ssm:GetParameters
+                - ssm:GetParameter
+              Resource: '*'
+  
+  ApiGatewayId:
+    Type: AWS::SSM::Parameter
+    DependsOn: ApiGatewayApi
+    Properties:
+      Name: "/devops-backend/msteamsapi/id"   
+      Type: String
+      Value: { Ref: ApiGatewayApi }
+
