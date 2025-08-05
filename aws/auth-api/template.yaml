@@ -194,12 +194,49 @@ Resources:
               Action:
                 - cognito-idp:AdminInitiateAuth
               Resource: '*'
-  
+  UpdateUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: update.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      FunctionName: Devops-Auth-update
+      Description: To login user
+      CodeUri: ../auth-api
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Method: post
+            Path: /update
+            RestApiId:
+              Ref: ApiGatewayApi
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: { Ref: UserPoolId }
+          COGNITO_CLIENT_ID: { Ref: UserPoolClientId }
+          DOMAIN: { Ref: Domain }
+      Policies:
+        - VPCAccessPolicy: {}
+        - Statement:
+            - Sid: SSMGetParameterPolicy
+              Effect: Allow
+              Action:
+                - ssm:GetParameters
+                - ssm:GetParameter
+              Resource: '*'
+            - Sid: LambdaInvokePolicy
+              Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource:
+                - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*
+
   ApiGatewayId:
     Type: AWS::SSM::Parameter
     DependsOn: ApiGatewayApi
     Properties:
-      Name: "/devops-backend/authapi/id"   #change
+      Name: "/devops-backend/authapi/id"
       Type: String
       Value: { Ref: ApiGatewayApi }
 
