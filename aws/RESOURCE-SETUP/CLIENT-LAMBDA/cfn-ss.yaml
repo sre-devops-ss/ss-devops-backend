@@ -1,0 +1,264 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform:
+  - 'AWS::LanguageExtensions'
+  - 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  
+  RefreshToken:
+    Type: String
+    Description: 'Refresh token to be stored securely in SSM Parameter Store'
+  
+  AccountName:
+    Type: String
+    
+    
+  Domain:
+    Type: String
+    Description: 'Refresh token to be stored securely in SSM Parameter Store'
+    Default: awsmonitor.supportsages.com
+  
+  TeamsWebhook:
+    Type: String
+    
+  SnsTopicName:
+    Type: String
+    Default: "devops-managed-sns"
+    
+  AlertEmailOps:
+    Type: String
+    Default: "ops@supportsages.com"
+    Description: Comma-separated list of emails to subscribe
+  
+  AlertEmailClient:
+    Type: String
+    Description: Comma-separated list of emails to subscribe
+  
+  CrossRoleName:
+    Type: String
+    Default: "devops-ui-cross-account"
+  
+    
+Resources:
+  RegionParam:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/api/region'
+      Type: String
+      Value: !Ref "AWS::Region"
+      Description: 'AWS region the stack is deployed in'
+
+  RefreshTokenParameter:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/refresh_token'
+      Type: String
+      Value: !Ref RefreshToken
+      Description: 'Refresh token for devops-ui cross account access'
+
+  DomainParam:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/domain'
+      Type: String
+      Value: !Ref Domain
+      Description: 'Refresh token for devops-ui cross account access'
+  
+  
+  
+  CrossAccountIAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Ref CrossRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::979453078508:root'
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/IAMReadOnlyAccess
+        - arn:aws:iam::aws:policy/AWSCloudTrail_ReadOnlyAccess
+        - arn:aws:iam::aws:policy/AWSBudgetsReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonRDSFullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonSSMFullAccess
+      Policies:
+        - PolicyName: LambdaGetFunctionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 'lambda:GetFunction'
+                Resource: '*'
+        - PolicyName: IAM-update
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 'iam:PutRolePolicy'
+                Resource: '*'
+  CrossAccountRoleArnParamStore:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/cross-account-role-arn'
+      Type: String
+      Value: !GetAtt CrossAccountIAMRole.Arn
+      Description: 'cross account role arn used by ss backend'
+  CrossAccountRoleNameParamStore:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/cross-account-role-name'
+      Type: String
+      Value: !Ref CrossAccountIAMRole
+      Description: 'cross account role name used by ss backend'  
+  LambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: devops-ui-lambda-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - sts:GetCallerIdentity
+                  - organizations:DescribeAccount
+                Resource: "*"
+
+  DevopsBackendLayer:
+    Type: 'AWS::Lambda::LayerVersion'
+    Properties:
+      LayerName: devops-client-layer
+      Content:
+        S3Bucket: !Sub ss-backend-config-${AWS::Region}-${AWS::AccountId}
+        S3Key: relay_layer.zip
+      CompatibleRuntimes:
+        - python3.10
+      Description: layer for DevOps Backend Lambda
+      
+  DevopsClientLayer:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/ss/backend/client-layer-name'
+      Type: String
+      Value: !Ref DevopsBackendLayer
+      Description: 'client layer arn used by ss backend'
+    
+  DevopsBackendLayerPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref DevopsBackendLayer
+      Principal: "*"
+
+      
+  DevopsClientLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: devops-client-lambda
+      Handler: client-provider.lambda_handler
+      Runtime: python3.10
+      Code:
+        S3Bucket: !Sub ss-backend-config-${AWS::Region}-${AWS::AccountId}
+        S3Key: client_lambda.zip
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Layers:
+        - !Ref DevopsBackendLayer
+      Environment:
+        Variables:
+          DOMAIN: !Ref Domain
+          ACCOUNT_NUMBER: !Ref "AWS::AccountId"
+          ACCOUNT_NAME: !Ref AccountName
+  
+  
+  NotificationLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: devops-notification-lambda
+      Handler: notification.lambda_handler
+      Runtime: python3.10
+      Code:
+        S3Bucket: !Sub ss-backend-config-${AWS::Region}-${AWS::AccountId}
+        S3Key: notification.zip
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Layers:
+        - !Ref DevopsBackendLayer
+      Environment:
+        Variables:
+          DOMAIN: !Ref Domain
+          ACCOUNT_NUMBER: !Ref "AWS::AccountId"
+          ACCOUNT_NAME: !Ref AccountName
+          TEAMS_WEBHOOK_URLL: !Ref TeamsWebhook
+  
+  
+
+  AlertSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Ref SnsTopicName
+  
+  AlertTopicNameParameterStore:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/devops-backend/snstopic/name"   #change
+      Type: String
+      Value: !Ref SnsTopicName
+  
+  AlertTopicParameterStore:
+    Type: AWS::SSM::Parameter
+    DependsOn: AlertSNSTopic
+    Properties:
+      Name: "/devops-backend/snstopic/arn"   #change
+      Type: String
+      Value: !Ref AlertSNSTopic
+    
+  AlertEmailSubscription2:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlertSNSTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmailOps
+  AlertEmailSubscription1:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlertSNSTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmailClient
+      
+  NotificationLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref NotificationLambda
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref AlertSNSTopic
+
+  NotificationLambdaSNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlertSNSTopic
+      Protocol: lambda
+      Endpoint: !GetAtt NotificationLambda.Arn
