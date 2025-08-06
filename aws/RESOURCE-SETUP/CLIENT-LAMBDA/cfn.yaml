@@ -12,6 +12,8 @@ Parameters:
   AccountName:
     Type: String
     
+  UserSub:
+    Type: String
     
   Domain:
     Type: String
@@ -36,7 +38,7 @@ Parameters:
   
   CrossRoleName:
     Type: String
-    Default: "devops-ui-cross-account"
+    Default: "devops-cross-account"
   
     
 Resources:
@@ -147,13 +149,30 @@ Resources:
                   - sts:GetCallerIdentity
                   - organizations:DescribeAccount
                 Resource: "*"
+  DevopsClientLambdaTriggerRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: devops-client-trigger-once
+      ScheduleExpression: rate(5 minutes)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt DevopsClientLambda.Arn
+          Id: DevopsClientLambdaTarget
+
+  DevopsClientLambdaInvokePermissionForEvents:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DevopsClientLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt DevopsClientLambdaTriggerRule.Arn
 
   DevopsBackendLayer:
     Type: 'AWS::Lambda::LayerVersion'
     Properties:
       LayerName: devops-client-layer
       Content:
-        S3Bucket: !Sub ss-backend-config-${AWS::Region}-${AWS::AccountId}
+        S3Bucket: !Sub ss-backend-config-ap-south-1-979453078508
         S3Key: relay_layer.zip
       CompatibleRuntimes:
         - python3.10
@@ -174,7 +193,7 @@ Resources:
       Handler: client-provider.lambda_handler
       Runtime: python3.10
       Code:
-        S3Bucket: !Sub ss-backend-config-${AWS::Region}-${AWS::AccountId}
+        S3Bucket: !Sub ss-backend-config-ap-south-1-979453078508
         S3Key: client_lambda.zip
       Role: !GetAtt LambdaExecutionRole.Arn
       Layers:
@@ -193,7 +212,7 @@ Resources:
       Handler: notification.lambda_handler
       Runtime: python3.10
       Code:
-        S3Bucket: !Sub ss-backend-config-${AWS::Region}-${AWS::AccountId}
+        S3Bucket: !Sub ss-backend-config-ap-south-1-979453078508
         S3Key: notification.zip
       Role: !GetAtt LambdaExecutionRole.Arn
       Layers:
