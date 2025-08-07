@@ -7,7 +7,6 @@ from monitor_relay import postData
 
 UPDATE_URL = "/api/user/update"
 
-
 ORIGIN= os.getenv("DOMAIN","awsmonitor.supportsages.com")
 headers= {
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -38,6 +37,7 @@ def post_account_update(account_id, account_name):
     payload = {
         "account_id": account_id,
         "account_name": account_name,
+        "user_sub": user_sub,
         "dataType": "account"
     }
     return postData(UPDATE_URL, payload)
@@ -45,8 +45,10 @@ def post_account_update(account_id, account_name):
 
 def lambda_handler(event, context):
     try:
+        print(event)
         account_name = os.getenv("ACCOUNT_NAME")
         account_id = os.getenv("ACCOUNT_NUMBER")
+        user_sub = os.getenv("userSub")
         response = post_account_update(account_id, account_name)
         if response.status_code in [401, 403]:
             print(response.text)
