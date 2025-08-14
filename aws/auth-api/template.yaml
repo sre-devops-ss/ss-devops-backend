@@ -217,20 +217,19 @@ Resources:
           COGNITO_CLIENT_ID: { Ref: UserPoolClientId }
           DOMAIN: { Ref: Domain }
       Policies:
-        - VPCAccessPolicy: {}
-        - Statement:
-            - Sid: SSMGetParameterPolicy
-              Effect: Allow
-              Action:
-                - ssm:GetParameters
-                - ssm:GetParameter
-              Resource: '*'
-            - Sid: LambdaInvokePolicy
-              Effect: Allow
-              Action:
-                - lambda:InvokeFunction
-              Resource:
-                - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*
+      - VPCAccessPolicy: {}
+      - Statement:
+          - Sid: SSMFullAccess
+            Effect: Allow
+            Action:
+              - ssm:*
+            Resource: "*"
+          - Sid: LambdaInvokePolicy
+            Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource:
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*
 
   ApiGatewayId:
     Type: AWS::SSM::Parameter
@@ -239,4 +238,3 @@ Resources:
       Name: "/devops-backend/authapi/id"
       Type: String
       Value: { Ref: ApiGatewayApi }
-
