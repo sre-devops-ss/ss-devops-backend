@@ -178,8 +178,8 @@ Resources:
   DevopsClientLambda:
     Type: 'AWS::Lambda::Function'
     Properties:
-      FunctionName: devops-client-lambda
-      Handler: client-provider.lambda_handler
+      FunctionName: devops-client_provider
+      Handler: client_provider.lambda_handler
       Runtime: python3.10
       Code:
         S3Bucket: !Sub ss-backend-config-${AWS::Region}-${AWS::AccountId}
