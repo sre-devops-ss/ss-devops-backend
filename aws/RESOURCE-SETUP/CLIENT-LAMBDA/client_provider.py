@@ -33,7 +33,7 @@ def apiResponse(message, statuscode):
 # 
 #     return account_id
 
-def post_account_update(account_id, account_name):
+def post_account_update(account_id, account_name, user_sub):
     payload = {
         "account_id": account_id,
         "account_name": account_name,
@@ -49,7 +49,7 @@ def lambda_handler(event, context):
         account_name = os.getenv("ACCOUNT_NAME")
         account_id = os.getenv("ACCOUNT_NUMBER")
         user_sub = os.getenv("userSub")
-        response = post_account_update(account_id, account_name)
+        response = post_account_update(account_id, account_name, user_sub)
         if response.status_code in [401, 403]:
             print(response.text)
         if response.status_code == 200:
