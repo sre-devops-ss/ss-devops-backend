@@ -230,8 +230,6 @@ Resources:
           ACCOUNT_NAME: !Ref AccountName
           TEAMS_WEBHOOK_URLL: !Ref TeamsWebhook
   
-  
-
   AlertSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
