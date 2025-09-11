@@ -1,0 +1,133 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: FileprocessAPI deployment with Lambda to launch/shutdown Windows EC2 (with API Key)
+
+Parameters:
+  WindowsAmiId:
+    Type: String
+    Default: "ami-0ed981b8451912647"
+
+  InstanceRoleArn:
+    Type: String
+    Default: "arn:aws:iam::979453078508:role/Ec2-Role"
+
+  Environment:
+    Type: String
+    Default: "dev"
+
+Globals:
+  Function:
+    Runtime: python3.10
+    Timeout: 60
+    MemorySize: 256
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
+
+Resources:
+  FileprocessApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "fileprocess-api"
+      StageName: !Ref Environment
+      Auth:
+        ApiKeyRequired: true
+
+
+  CreateInstanceLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "Fileprocess-Create-${Environment}"
+      Description: Launch Windows EC2 instance for file processing
+      Handler: process.lambda_handler
+      CodeUri: ../fileprocess-api
+      Environment:
+        Variables:
+          WINDOWS_AMI_ID: { Ref: WindowsAmiId }
+          INSTANCE_ROLE_ARN: { Ref: InstanceRoleArn }
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ec2:RunInstances
+                - ec2:DescribeInstances
+              Resource: "*"
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /create
+            Method: post
+            RestApiId: !Ref FileprocessApi
+            Auth:
+              ApiKeyRequired: true
+
+
+  ShutdownInstanceLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "Fileprocess-Shutdown-${Environment}"
+      Description: Shutdown Windows EC2 instance
+      Handler: cleanup.lambda_handler
+      CodeUri: ../fileprocess-api
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ec2:StopInstances
+              Resource: "*"
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /shutdown/{id}
+            Method: get
+            RestApiId: !Ref FileprocessApi
+            Auth:
+              ApiKeyRequired: true
+
+
+  FileprocessApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: !Sub "FileprocessApiKey-${Environment}"
+      Enabled: true
+      StageKeys:
+        - RestApiId: !Ref FileprocessApi
+          StageName: !Ref Environment
+
+  FileprocessUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      UsagePlanName: !Sub "FileprocessUsagePlan-${Environment}"
+      ApiStages:
+        - ApiId: !Ref FileprocessApi
+          Stage: !Ref Environment
+
+  FileprocessUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref FileprocessApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref FileprocessUsagePlan
+
+
+  ApiGatewayId:
+    Type: AWS::SSM::Parameter
+    DependsOn: FileprocessApi
+    Properties:
+      Name: "/fileprocess/api/id"
+      Type: String
+      Value: !Ref FileprocessApi
+
+Outputs:
+  ApiEndpoint:
+    Value: !Sub "https://${FileprocessApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+    Description: Invoke URL for Fileprocess API
+
+  ApiKeyValue:
+    Value: !Ref FileprocessApiKey
+    Description: API Key to use when calling Fileprocess API
