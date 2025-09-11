@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: FileprocessAPI deployment with Lambda to launch/shutdown Windows EC2 (with API Key)
+Description: FileprocessAPI deployment with Lambda to launch/shutdown Windows EC2
 
 Parameters:
   WindowsAmiId:
@@ -34,8 +34,7 @@ Resources:
       Name: "fileprocess-api"
       StageName: !Ref Environment
       Auth:
-        ApiKeyRequired: true
-
+        ApiKeyRequired: true   # Require API key header, but no key resources created
 
   CreateInstanceLambda:
     Type: AWS::Serverless::Function
@@ -46,8 +45,8 @@ Resources:
       CodeUri: ../fileprocess-api
       Environment:
         Variables:
-          WINDOWS_AMI_ID: { Ref: WindowsAmiId }
-          INSTANCE_ROLE_ARN: { Ref: InstanceRoleArn }
+          WINDOWS_AMI_ID: !Ref WindowsAmiId
+          INSTANCE_ROLE_ARN: !Ref InstanceRoleArn
       Policies:
         - Statement:
             - Effect: Allow
@@ -64,7 +63,6 @@ Resources:
             RestApiId: !Ref FileprocessApi
             Auth:
               ApiKeyRequired: true
-
 
   ShutdownInstanceLambda:
     Type: AWS::Serverless::Function
@@ -89,32 +87,6 @@ Resources:
             Auth:
               ApiKeyRequired: true
 
-
-  FileprocessApiKey:
-    Type: AWS::ApiGateway::ApiKey
-    Properties:
-      Name: !Sub "FileprocessApiKey-${Environment}"
-      Enabled: true
-      StageKeys:
-        - RestApiId: !Ref FileprocessApi
-          StageName: !Ref Environment
-
-  FileprocessUsagePlan:
-    Type: AWS::ApiGateway::UsagePlan
-    Properties:
-      UsagePlanName: !Sub "FileprocessUsagePlan-${Environment}"
-      ApiStages:
-        - ApiId: !Ref FileprocessApi
-          Stage: !Ref Environment
-
-  FileprocessUsagePlanKey:
-    Type: AWS::ApiGateway::UsagePlanKey
-    Properties:
-      KeyId: !Ref FileprocessApiKey
-      KeyType: API_KEY
-      UsagePlanId: !Ref FileprocessUsagePlan
-
-
   ApiGatewayId:
     Type: AWS::SSM::Parameter
     DependsOn: FileprocessApi
@@ -127,7 +99,3 @@ Outputs:
   ApiEndpoint:
     Value: !Sub "https://${FileprocessApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
     Description: Invoke URL for Fileprocess API
-
-  ApiKeyValue:
-    Value: !Ref FileprocessApiKey
-    Description: API Key to use when calling Fileprocess API
