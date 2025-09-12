@@ -85,7 +85,7 @@ Resources:
         ApiEvent:
           Type: Api
           Properties:
-            Path: /create
+            Path: /instance/create
             Method: post
             RestApiId: !Ref FileprocessApi
             Auth:
@@ -111,7 +111,7 @@ Resources:
         ApiEvent:
           Type: Api
           Properties:
-            Path: /shutdown/{id}
+            Path: instance/shutdown/{id}
             Method: get
             RestApiId: !Ref FileprocessApi
             Auth:
