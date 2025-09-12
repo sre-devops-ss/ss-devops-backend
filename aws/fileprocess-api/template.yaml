@@ -9,7 +9,7 @@ Parameters:
 
   InstanceRoleArn:
     Type: String
-    Default: "arn:aws:iam::979453078508:role/Ec2-Role"
+    Default: "arn:aws:iam::979453078508:instance-profile/ec2-s3-role"
 
   Environment:
     Type: String
@@ -95,7 +95,3 @@ Resources:
       Type: String
       Value: !Ref FileprocessApi
 
-Outputs:
-  ApiEndpoint:
-    Value: !Sub "https://${FileprocessApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
-    Description: Invoke URL for Fileprocess API
