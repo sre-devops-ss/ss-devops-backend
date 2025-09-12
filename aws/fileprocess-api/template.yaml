@@ -7,10 +7,6 @@ Parameters:
     Type: String
     Default: "ami-0ed981b8451912647"
 
-  InstanceRoleArn:
-    Type: String
-    Default: "arn:aws:iam::979453078508:instance-profile/ec2-s3-role"
-
   Environment:
     Type: String
     Default: "dev"
@@ -28,14 +24,45 @@ Globals:
       AllowCredentials: "'*'"
 
 Resources:
+  #################################
+  # API Gateway
+  #################################
   FileprocessApi:
     Type: AWS::Serverless::Api
     Properties:
       Name: "fileprocess-api"
       StageName: !Ref Environment
       Auth:
-        ApiKeyRequired: true   # Require API key header, but no key resources created
+        ApiKeyRequired: true
 
+  #################################
+  # IAM Role + Instance Profile for EC2
+  #################################
+  EC2S3Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "EC2S3Role-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess   # adjust if you need write
+      Path: "/"
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub "EC2InstanceProfile-${Environment}"
+      Roles:
+        - !Ref EC2S3Role
+
+  #################################
+  # Lambda: Create EC2 Instance
+  #################################
   CreateInstanceLambda:
     Type: AWS::Serverless::Function
     Properties:
@@ -46,7 +73,7 @@ Resources:
       Environment:
         Variables:
           WINDOWS_AMI_ID: !Ref WindowsAmiId
-          INSTANCE_ROLE_ARN: !Ref InstanceRoleArn
+          INSTANCE_PROFILE_ARN: !GetAtt EC2InstanceProfile.Arn
       Policies:
         - Statement:
             - Effect: Allow
@@ -64,6 +91,9 @@ Resources:
             Auth:
               ApiKeyRequired: true
 
+  #################################
+  # Lambda: Shutdown EC2 Instance
+  #################################
   ShutdownInstanceLambda:
     Type: AWS::Serverless::Function
     Properties:
@@ -87,6 +117,9 @@ Resources:
             Auth:
               ApiKeyRequired: true
 
+  #################################
+  # Save API ID in SSM
+  #################################
   ApiGatewayId:
     Type: AWS::SSM::Parameter
     DependsOn: FileprocessApi
@@ -94,4 +127,5 @@ Resources:
       Name: "/fileprocess/api/id"
       Type: String
       Value: !Ref FileprocessApi
+
 

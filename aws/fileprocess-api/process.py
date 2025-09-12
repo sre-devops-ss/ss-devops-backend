@@ -16,7 +16,7 @@ def lambda_handler(event, context):
     s3_url = body["s3Url"]
 
     ami_id = os.environ["WINDOWS_AMI_ID"]
-    instance_role = os.environ["INSTANCE_ROLE_ARN"]
+    instance_role = os.environ["INSTANCE_PROFILE_ARN"]
 
     instance_type = choose_instance_type(file_size)
 
