@@ -140,3 +140,14 @@ Resources:
       Environment:
         Variables:
           API_GATEWAY_URL: !Ref ApiGatewayUrl
+
+  TaggingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: TaggingFunction:Function
+      CodeUri: ../backend-lambda
+      Handler: tagged-resourse.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          API_GATEWAY_URL: !Ref ApiGatewayUrl
