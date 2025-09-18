@@ -89,7 +89,7 @@ Resources:
   CreateInstanceLambda:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "Fileprocess-Create-${Environment}"
+      FunctionName: !Sub "ec2-create-${Environment}"
       Description: Launch Windows EC2 instance for file processing
       Handler: process.lambda_handler
       CodeUri: ../fileprocess-api
