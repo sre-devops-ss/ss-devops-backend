@@ -10,6 +10,12 @@ Parameters:
   Environment:
     Type: String
     Default: "dev"
+  VpcId:
+    Type: String
+    Default: "vpc-01335ba0a1f6a1465"
+  SubnetId:
+    Type: String
+    Default: "subnet-0104fa10db91dc324"
 
 Globals:
   Function:
@@ -60,6 +66,20 @@ Resources:
       Roles:
         - !Ref EC2S3Role
 
+  FileprocessSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: !Sub "Security Group for Fileprocess Windows EC2 (${Environment})"
+        VpcId: !Ref VpcId      
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 3389         # RDP
+            ToPort: 3389
+            CidrIp: 0.0.0.0/0      
+        Tags:
+          - Key: Name
+            Value: !Sub "FileprocessSG-${Environment}"
+
   #################################
   # Lambda: Create EC2 Instance
   #################################
@@ -74,6 +94,9 @@ Resources:
         Variables:
           WINDOWS_AMI_ID: !Ref WindowsAmiId
           INSTANCE_PROFILE_ARN: !GetAtt EC2InstanceProfile.Arn
+          VPC_ID: !Ref VpcId
+          SUBNET_ID: !Ref SubnetId
+          SG_ID: !Ref FileprocessSecurityGroup
       Policies:
         - Statement:
             - Effect: Allow
@@ -111,7 +134,7 @@ Resources:
         ApiEvent:
           Type: Api
           Properties:
-            Path: instance/shutdown/{id}
+            Path: instance/delete/{id}
             Method: get
             RestApiId: !Ref FileprocessApi
             Auth:

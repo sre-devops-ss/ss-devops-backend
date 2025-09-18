@@ -17,6 +17,10 @@ def lambda_handler(event, context):
 
     ami_id = os.environ["WINDOWS_AMI_ID"]
     instance_role = os.environ["INSTANCE_PROFILE_ARN"]
+    subnet_id=os.environ["SUBNET_ID"]
+    vpc_id=os.environ["VPC_ID"]
+    sg_id= os.environ["SG_ID"]
+
 
     instance_type = choose_instance_type(file_size)
 
@@ -36,6 +40,11 @@ def lambda_handler(event, context):
         MaxCount=1,
         IamInstanceProfile={'Arn': instance_role},
         UserData=base64.b64encode(userdata.encode("utf-8")).decode("utf-8")
+        SubnetId=subnet_id
+        VpcId=vpc_id
+        SecurityGroupIds= [sg_id]
+
+
     )
 
     instance_id = resp["Instances"][0]["InstanceId"]
