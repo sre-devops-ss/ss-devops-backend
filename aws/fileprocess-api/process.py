@@ -14,12 +14,12 @@ def lambda_handler(event, context):
     body = json.loads(event["body"])
     file_size = int(body["file_size"])
     s3_url = body["s3Url"]
-    ami_id=body["amiId"] or os.environ["AMI_ID"]
     instance_role = os.environ["INSTANCE_PROFILE_ARN"]
-    subnet_id=body["subnetId"] or os.environ["SUBNET_ID"]
-    vpc_id=body["vpcId"] or os.environ["VPC_ID"]
-    sg_id= body["sg_id"] or os.environ["SG_ID"]
-    key_name= body["keyName"] or os.environ["KEY_NAME"]
+    ami_id = body.get("amiId", os.environ.get("AMI_ID"))
+    subnet_id = body.get("subnetId", os.environ.get("SUBNET_ID"))
+    vpc_id = body.get("vpcId", os.environ.get("VPC_ID"))
+    sg_id = body.get("sg_id", os.environ.get("SG_ID"))
+    key_name = body.get("keyName", os.environ.get("KEY_NAME"))
 
 
 

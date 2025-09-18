@@ -122,7 +122,7 @@ Resources:
   #################################
   # Lambda: Shutdown EC2 Instance
   #################################
-  ShutdownInstanceLambda:
+  TerminateInstanceLambda:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "instance-terminate-${Environment}"
@@ -134,6 +134,8 @@ Resources:
             - Effect: Allow
               Action:
                 - ec2:StopInstances
+                - ec2:TerminateInstances
+
               Resource: "*"
       Events:
         ApiEvent:
