@@ -141,7 +141,7 @@ Resources:
         ApiEvent:
           Type: Api
           Properties:
-            Path: instance/delete/{id}
+            Path: /instance/delete/{id}
             Method: get
             RestApiId: !Ref FileprocessApi
             Auth:
