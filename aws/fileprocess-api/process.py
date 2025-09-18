@@ -39,9 +39,9 @@ def lambda_handler(event, context):
         MinCount=1,
         MaxCount=1,
         IamInstanceProfile={'Arn': instance_role},
-        UserData=base64.b64encode(userdata.encode("utf-8")).decode("utf-8")
-        SubnetId=subnet_id
-        VpcId=vpc_id
+        UserData=base64.b64encode(userdata.encode("utf-8")).decode("utf-8"),
+        SubnetId=subnet_id,
+        VpcId=vpc_id,
         SecurityGroupIds= [sg_id]
 
 
