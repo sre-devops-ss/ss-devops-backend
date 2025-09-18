@@ -65,7 +65,7 @@ Resources:
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      InstanceProfileName: !Sub "EC2InstanceProfile-${Environment}"
+      InstanceProfileName: !Sub "EC2Profile-${Environment}"
       Roles:
         - !Ref EC2S3Role
 
