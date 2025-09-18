@@ -3,7 +3,7 @@ Transform: AWS::Serverless-2016-10-31
 Description: FileprocessAPI deployment with Lambda to launch/shutdown Windows EC2
 
 Parameters:
-  WindowsAmiId:
+  AmiId:
     Type: String
     Default: "ami-0ed981b8451912647"
 
@@ -16,6 +16,9 @@ Parameters:
   SubnetId:
     Type: String
     Default: "subnet-0104fa10db91dc324"
+  KeyName:
+    Type: String
+    Default: "cfn"
 
 Globals:
   Function:
@@ -56,7 +59,7 @@ Resources:
               Service: ec2.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess   # adjust if you need write
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess   
       Path: "/"
 
   EC2InstanceProfile:
@@ -66,19 +69,28 @@ Resources:
       Roles:
         - !Ref EC2S3Role
 
-  FileprocessSecurityGroup:
+  SecurityGroup:
       Type: AWS::EC2::SecurityGroup
       Properties:
         GroupDescription: !Sub "Security Group for Fileprocess Windows EC2 (${Environment})"
         VpcId: !Ref VpcId      
         SecurityGroupIngress:
           - IpProtocol: tcp
-            FromPort: 3389         # RDP
+            FromPort: 3389         
             ToPort: 3389
             CidrIp: 0.0.0.0/0      
         Tags:
           - Key: Name
             Value: !Sub "FileprocessSG-${Environment}"
+  
+  KeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: !Ref KeyName
+      KeyType: rsa
+      Tags:
+        - Key: Name
+          Value: !Sub "CfnKey-${Environment}"
 
   #################################
   # Lambda: Create EC2 Instance
@@ -92,11 +104,12 @@ Resources:
       CodeUri: ../fileprocess-api
       Environment:
         Variables:
-          WINDOWS_AMI_ID: !Ref WindowsAmiId
+          AMI_ID: !Ref AmiId
           INSTANCE_PROFILE_ARN: !GetAtt EC2InstanceProfile.Arn
           VPC_ID: !Ref VpcId
           SUBNET_ID: !Ref SubnetId
-          SG_ID: !Ref FileprocessSecurityGroup
+          SG_ID: !Ref SecurityGroup
+          KEY_NAME: !Ref KeyPair
       Policies:
         - Statement:
             - Effect: Allow
@@ -121,8 +134,8 @@ Resources:
   ShutdownInstanceLambda:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "Fileprocess-Shutdown-${Environment}"
-      Description: Shutdown Windows EC2 instance
+      FunctionName: !Sub "instance-terminate-${Environment}"
+      Description: Shutdown  EC2 instance
       Handler: cleanup.lambda_handler
       CodeUri: ../fileprocess-api
       Policies:

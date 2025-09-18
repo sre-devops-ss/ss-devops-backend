@@ -14,12 +14,13 @@ def lambda_handler(event, context):
     body = json.loads(event["body"])
     file_size = int(body["file_size"])
     s3_url = body["s3Url"]
-
-    ami_id = os.environ["WINDOWS_AMI_ID"]
+    ami_id=body["amiId"] or os.environ["AMI_ID"]
     instance_role = os.environ["INSTANCE_PROFILE_ARN"]
-    subnet_id=os.environ["SUBNET_ID"]
-    vpc_id=os.environ["VPC_ID"]
-    sg_id= os.environ["SG_ID"]
+    subnet_id=body["subnetId"] or os.environ["SUBNET_ID"]
+    vpc_id=body["vpcId"] or os.environ["VPC_ID"]
+    sg_id= body["sg_id"] or os.environ["SG_ID"]
+    key_name= body["keyName"] or os.environ["KEY_NAME"]
+
 
 
     instance_type = choose_instance_type(file_size)
@@ -41,7 +42,8 @@ def lambda_handler(event, context):
         IamInstanceProfile={'Arn': instance_role},
         UserData=base64.b64encode(userdata.encode("utf-8")).decode("utf-8"),
         SubnetId=subnet_id,
-        SecurityGroupIds= [sg_id]
+        SecurityGroupIds= [sg_id],
+        KeyName=key_name
 
 
     )
